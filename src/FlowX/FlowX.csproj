@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
         <LangVersion>default</LangVersion>
         <Authors>Quy Vu</Authors>
@@ -15,6 +14,11 @@
         <PackagePath></PackagePath>
         <Link>FlowX.png</Link>
       </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Abstractions\RequestFlow\" />
+      <Folder Include="Implementations\" />
     </ItemGroup>
 
 </Project>
