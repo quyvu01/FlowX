@@ -7,7 +7,6 @@ namespace FlowX.Abstractions;
 public interface ISqlRepository<T> where T : class
 {
     IQueryable<T> GetQueryable(Expression<Func<T, bool>> conditionExpression = null);
-    IQueryable<T> GetQueryableFromRawQuery(string sql, params object[] parameters);
 
     Task<T> GetFirstByConditionAsync(Expression<Func<T, bool>> conditionExpression = null,
         Func<IQueryable<T>, IQueryable<T>> specialAction = null, CancellationToken token = default);

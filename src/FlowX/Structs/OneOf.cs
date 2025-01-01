@@ -50,6 +50,9 @@ public readonly struct OneOf<T0, T1>
         IsT1 = true;
     }
 
+    public static OneOf<T0, T1> FromT0(T0 to) => new(to);
+    public static OneOf<T0, T1> FromT1(T1 t1) => new(t1);
+
     public static implicit operator OneOf<T0, T1>(T0 t0) => new(t0);
     public static implicit operator OneOf<T0, T1>(T1 t1) => new(t1);
 }

@@ -6,7 +6,7 @@ public interface FlowContext
     CancellationToken CancellationToken { get; }
 }
 
-public interface RequestContext<TRequest> : FlowContext
+public interface RequestContext<out TRequest> : FlowContext
 {
     TRequest Request { get; }
 }
