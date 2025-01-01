@@ -7,6 +7,7 @@ namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryOneFlow;
 public class QueryOneFlow<TModel, TResponse> :
     IQueryOneFilter<TModel, TResponse>,
     IQueryOneSpecialAction<TModel, TResponse>,
+    IQueryOneMapResponse<TModel, TResponse>,
     IQueryOneErrorDetail<TModel, TResponse>,
     IQueryOneFlowBuilder<TModel, TResponse> where TModel : class where TResponse : class
 {
@@ -14,6 +15,7 @@ public class QueryOneFlow<TModel, TResponse> :
     public Expression<Func<TModel, bool>> Filter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> SpecialAction { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TResponse>> SpecialActionToResponse { get; private set; }
+    public Func<TModel, TResponse> MapFunc { get; private set; }
     public ErrorDetail ErrorDetail { get; private set; }
 
     public IQueryOneSpecialAction<TModel, TResponse> WithFilter(Expression<Func<TModel, bool>> filter)
@@ -22,14 +24,16 @@ public class QueryOneFlow<TModel, TResponse> :
         return this;
     }
 
-    public IQueryOneErrorDetail<TModel, TResponse> WithSpecialAction(Func<IQueryable<TModel>, IQueryable<TModel>> specialAction)
+    IQueryOneMapResponse<TModel, TResponse> IQueryOneSpecialAction<TModel, TResponse>.WithSpecialAction(
+        Func<IQueryable<TModel>, IQueryable<TModel>> specialAction)
     {
         QuerySpecialActionType = QuerySpecialActionType.ToModel;
         SpecialAction = specialAction;
         return this;
     }
 
-    public IQueryOneErrorDetail<TModel, TResponse> WithSpecialAction(Func<IQueryable<TModel>, IQueryable<TResponse>> specialAction)
+    public IQueryOneErrorDetail<TModel, TResponse> WithSpecialAction(
+        Func<IQueryable<TModel>, IQueryable<TResponse>> specialAction)
     {
         QuerySpecialActionType = QuerySpecialActionType.ToTarget;
         SpecialActionToResponse = specialAction;
@@ -39,6 +43,12 @@ public class QueryOneFlow<TModel, TResponse> :
     public IQueryOneFlowBuilder<TModel, TResponse> WithErrorIfNull([NotNull] ErrorDetail errorDetail)
     {
         ErrorDetail = errorDetail;
+        return this;
+    }
+
+    public IQueryOneErrorDetail<TModel, TResponse> WithMap(Func<TModel, TResponse> mapFunc)
+    {
+        MapFunc = mapFunc;
         return this;
     }
 }

@@ -9,6 +9,7 @@ public interface IQueryListFlowBuilder<TModel, out TResponse> where TModel : cla
     Expression<Func<TModel, bool>> Filter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> SpecialActionToModel { get; }
     Func<IQueryable<TModel>, IQueryable<TResponse>> SpecialActionToResponse { get; }
+    Func<TModel, TResponse> MapFunc { get; }
     Expression<Func<TModel, object>> SortFieldNameWhenRequestEmpty { get; }
     SortedDirection SortedDirectionWhenRequestEmpty { get; }
 }

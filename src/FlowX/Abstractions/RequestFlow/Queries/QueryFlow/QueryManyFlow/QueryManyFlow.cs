@@ -5,6 +5,7 @@ namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 
 public class QueryManyFlow<TModel, TResponse> : IQueryListFilter<TModel, TResponse>,
     IQueryListSpecialAction<TModel, TResponse>,
+    IQueryListMapResponse<TModel, TResponse>,
     IQueryListSortedField<TModel, TResponse>,
     IQueryListSortedDirection<TModel, TResponse>,
     IQueryListFlowBuilder<TModel, TResponse> where TModel : class
@@ -13,6 +14,7 @@ public class QueryManyFlow<TModel, TResponse> : IQueryListFilter<TModel, TRespon
     public Expression<Func<TModel, bool>> Filter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> SpecialActionToModel { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TResponse>> SpecialActionToResponse { get; private set; }
+    public Func<TModel, TResponse> MapFunc { get; private set; }
     public Expression<Func<TModel, object>> SortFieldNameWhenRequestEmpty { get; private set; }
     public SortedDirection SortedDirectionWhenRequestEmpty { get; private set; }
 
@@ -22,14 +24,16 @@ public class QueryManyFlow<TModel, TResponse> : IQueryListFilter<TModel, TRespon
         return this;
     }
 
-    public IQueryListSortedField<TModel, TResponse> WithSpecialAction(Func<IQueryable<TModel>, IQueryable<TModel>> specialAction)
+    IQueryListMapResponse<TModel, TResponse> IQueryListSpecialAction<TModel, TResponse>.WithSpecialAction(
+        Func<IQueryable<TModel>, IQueryable<TModel>> specialAction)
     {
         QuerySpecialActionType = QuerySpecialActionType.ToModel;
         SpecialActionToModel = specialAction;
         return this;
     }
 
-    public IQueryListSortedField<TModel, TResponse> WithSpecialAction(Func<IQueryable<TModel>, IQueryable<TResponse>> specialAction)
+    public IQueryListSortedField<TModel, TResponse> WithSpecialAction(
+        Func<IQueryable<TModel>, IQueryable<TResponse>> specialAction)
     {
         QuerySpecialActionType = QuerySpecialActionType.ToTarget;
         SpecialActionToResponse = specialAction;
@@ -46,6 +50,12 @@ public class QueryManyFlow<TModel, TResponse> : IQueryListFilter<TModel, TRespon
     public IQueryListFlowBuilder<TModel, TResponse> WithSortedDirectionWhenNotSet(SortedDirection direction)
     {
         SortedDirectionWhenRequestEmpty = direction;
+        return this;
+    }
+
+    public IQueryListSortedField<TModel, TResponse> WithMap(Func<TModel, TResponse> mapFunc)
+    {
+        MapFunc = mapFunc;
         return this;
     }
 }

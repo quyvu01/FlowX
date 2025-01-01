@@ -9,5 +9,6 @@ public interface IQueryOneFlowBuilder<TModel, out TResponse> where TModel : clas
     Expression<Func<TModel, bool>> Filter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> SpecialAction { get; }
     Func<IQueryable<TModel>, IQueryable<TResponse>> SpecialActionToResponse { get; }
+    Func<TModel, TResponse> MapFunc { get; }
     ErrorDetail ErrorDetail { get; }
 }

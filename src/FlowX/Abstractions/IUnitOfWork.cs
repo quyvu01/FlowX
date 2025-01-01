@@ -1,6 +1,10 @@
-﻿namespace FlowX.Abstractions;
+﻿using FlowX.ApplicationModels;
+using FlowX.Errors;
+using FlowX.Structs;
+
+namespace FlowX.Abstractions;
 
 public interface IUnitOfWork
 {
-    Task<int> SaveChangesAsync(CancellationToken token = default);
+    Task<OneOf<None, ErrorDetail>> SaveChangesAsync(CancellationToken token = default);
 }

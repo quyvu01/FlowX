@@ -3,4 +3,7 @@
 public interface ICommandHandler<TRequest> : IRequestHandler<TRequest> where TRequest : ICommand;
 
 public interface ICommandHandler<TRequest, TResult> : IRequestHandler<TRequest, TResult>, IMessageHandler
-    where TRequest : ICommand<TResult>;
+    where TRequest : ICommand<TResult>
+{
+    Task<TResult> HandleAsync(RequestContext<TRequest> requestContext);
+}
