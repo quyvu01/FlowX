@@ -5,8 +5,8 @@
         <LangVersion>default</LangVersion>
         <PackageIcon>FlowX.png</PackageIcon>
         <Version>1.0.0</Version>
-        <PackageId>FlowX.EFCore</PackageId>
-        <Description>FlowX.EFCore, a high performance and convenience package for database, interactive with database using EF Core</Description>
+        <PackageId>FlowX.EntityFrameworkCore</PackageId>
+        <Description>FlowX.EntityFrameworkCore, a high performance and convenience package for database, interactive with database using EF Core</Description>
         <PackageTags>FlowX;open-source;entity-framework;ORM</PackageTags>
         <RepositoryUrl>https://github.com/quyvu01/FlowX</RepositoryUrl>
         <PackageIcon>FlowX.png</PackageIcon>

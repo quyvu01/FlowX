@@ -1,8 +1,10 @@
 # FlowX.EntityFrameworkCore
 
-FlowX.EntityFrameworkCore is an extension package for the FlowX library, providing seamless integration with Entity Framework Core.
+FlowX.EntityFrameworkCore is an extension package for the FlowX library, providing seamless integration with Entity
+Framework Core.
 
 ## Features
+
 - Simplified integration with EF Core repositories.
 - Built-in support for Unit of Work patterns.
 - Customizable database interaction flows.
@@ -13,12 +15,15 @@ FlowX.EntityFrameworkCore is an extension package for the FlowX library, providi
 ## Getting Started
 
 ### Prerequisites
+
 Ensure you have the following installed:
+
 - .NET 8.0 or higher
 - Entity Framework Core
 - FlowX
 
 ### Installation
+
 To install the FlowX.EntityFrameworkCore package, use the following NuGet command:
 
 ```bash
@@ -34,6 +39,7 @@ Install-Package FlowX.EntityFrameworkCore
 ## Usage
 
 ### Usage
+
 Below is an example of how to use FlowX.EntityFrameworkCore to handle a `CreateSomeThingCommand`:
 
 ```csharp
@@ -51,6 +57,7 @@ builder.Services.AddFlowX(cfg =>
 ```
 
 Examples:
+
 ```csharp
 
 public sealed class CreateSomeThingHandler(
@@ -104,26 +111,41 @@ public sealed class GetSomeThingHandler(ISqlRepository<SomeThing> sqlRepository,
 ### Key Concepts
 
 #### EF Core Repositories
-FlowX.EntityFrameworkCore provides repository abstractions that simplify CRUD operations with EF Core. You can inject `ISqlRepository<T>` to access database entities directly.
+
+FlowX.EntityFrameworkCore provides repository abstractions that simplify CRUD operations with EF Core. You can
+inject `ISqlRepository<T>` to access database entities directly.
 
 #### Unit of Work
-Unit of Work ensures that all database operations within a command are executed in a single transaction, providing consistency and reliability.
+
+Unit of Work ensures that all database operations within a command are executed in a single transaction, providing
+consistency and reliability.
 
 #### Error Handling
-This extension includes advanced error handling tailored for EF Core, enabling you to catch and manage database-related errors gracefully.
+
+This extension includes advanced error handling tailored for EF Core, enabling you to catch and manage database-related
+errors gracefully.
 
 ## Contributing
+
 We welcome contributions to FlowX.EntityFrameworkCore! To contribute, please:
+
 1. Fork the repository.
 2. Create a new branch for your feature or bug fix.
 3. Submit a pull request with a detailed explanation of your changes.
 
 ## License
+
 FlowX.EntityFrameworkCore is licensed under the MIT License. See `LICENSE` for more details.
 
 ## Contact
+
 For inquiries, reach out to [your email or GitHub link].
 
 ---
 
 Extend your FlowX capabilities with FlowX.EntityFrameworkCore!
+
+| Package Name                                                              | Description                                                             | .NET Version | Document                                                                                     |
+|---------------------------------------------------------------------------|-------------------------------------------------------------------------|--------------|----------------------------------------------------------------------------------------------|
+| [FlowX](https://www.nuget.org/packages/FlowX/)                            | FlowX core                                                              | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.EntityFrameworkCore/README.md) |
+| [FlowX-EFCore](https://www.nuget.org/packages/FlowX.EntityFrameworkCore/) | This is the FlowX extension package using EntityFramework to fetch data | 8.0, 9.0     | This Document                                                                                |
