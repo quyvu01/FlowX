@@ -6,11 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlowX.EntityFrameworkCore.Repositories;
 
-public class EfRepository<T> : ISqlRepository<T> where T : class
+public class EfRepository<T>(DbContext dbContext) : ISqlRepository<T>
+    where T : class
 {
-    private readonly DbSet<T> _collection;
-
-    protected EfRepository(DbContext dbContext) => _collection = dbContext.Set<T>();
+    private readonly DbSet<T> _collection = dbContext.Set<T>();
 
     public virtual IQueryable<T> GetQueryable(Expression<Func<T, bool>> conditionExpression = null) =>
         conditionExpression is null ? _collection : _collection.Where(conditionExpression);

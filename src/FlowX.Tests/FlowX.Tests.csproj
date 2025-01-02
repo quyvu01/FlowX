@@ -23,4 +23,8 @@
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
     </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\FlowX.EntityFrameworkCore\FlowX.EntityFrameworkCore.csproj" />
+      <ProjectReference Include="..\FlowX\FlowX.csproj" />
+    </ItemGroup>
 </Project>

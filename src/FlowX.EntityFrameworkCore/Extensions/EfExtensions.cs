@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using FlowX.Abstractions;
 using FlowX.EntityFrameworkCore.Abstractions;
+using FlowX.EntityFrameworkCore.Registries;
 using FlowX.EntityFrameworkCore.Repositories;
 using FlowX.Extensions;
 using FlowX.Registries;
@@ -14,15 +15,24 @@ namespace FlowX.EntityFrameworkCore.Extensions;
 
 public static class EfExtensions
 {
-    public static FlowXRegister AddDbContext<TDbContext>(this FlowXRegister flowXRegister) where TDbContext : DbContext
+    public static FlowXRegister AddDbContextDynamic<TDbContext>(this FlowXRegister flowXRegister,
+        Action<FlowXEfCoreRegister> options) where TDbContext : DbContext
     {
+        var flowXEfCoreRegister = new FlowXEfCoreRegister(flowXRegister.ServiceCollection);
+        options.Invoke(flowXEfCoreRegister);
+        if (flowXEfCoreRegister.IsDynamicRepositories)
+            AddEfRepositoriesAsScope<TDbContext>(flowXRegister.ServiceCollection,
+                flowXRegister.ModelsFromNamespaceContaining, flowXRegister.ModelsFilter);
+        if (flowXEfCoreRegister.IsDynamicUnitOfWork)
+            AddEfUnitOfWorkAsScope<TDbContext>(flowXRegister.ServiceCollection);
         return flowXRegister;
     }
 
-    public static void AddEfRepositoriesAsScope<TDbContext>(this IServiceCollection services,
-        Assembly modelAssembly)
+    private static void AddEfRepositoriesAsScope<TDbContext>(IServiceCollection services,
+        Assembly modelAssembly, Func<Type, bool> modelsFilter)
         where TDbContext : DbContext => modelAssembly.ExportedTypes
         .Where(x => typeof(IEfModel).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false })
+        .Where(x => modelsFilter?.Invoke(x) ?? true)
         .ForEach(modelType =>
         {
             var assemblyName = new AssemblyName
@@ -33,7 +43,7 @@ public static class EfExtensions
             var typeBuilder = newModule
                 .DefineType($"{modelType.Name}Repository", TypeAttributes.Public, efRepositoryType);
             var ctorTypes = efRepositoryType.GetConstructor(
-                BindingFlags.NonPublic | BindingFlags.Instance, [typeof(TDbContext)])!;
+                BindingFlags.Public | BindingFlags.Instance, [typeof(TDbContext)])!;
             // Define the constructor for the dynamic class
             var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public,
                 CallingConventions.Standard, [typeof(TDbContext)]);
@@ -49,7 +59,7 @@ public static class EfExtensions
             services.TryAddScoped(implementationType, repositoryType);
         });
 
-    public static void AddEfUnitOfWorkAsScope<TDbContext>(this IServiceCollection services) where TDbContext : DbContext
+    private static void AddEfUnitOfWorkAsScope<TDbContext>(IServiceCollection services) where TDbContext : DbContext
     {
         var assemblyName = new AssemblyName
             { Name = $"{typeof(TDbContext).Assembly.GetName().Name}.DynamicEfUnitOfWorkType" };
@@ -58,7 +68,7 @@ public static class EfExtensions
         var efUnitOfWorkType = typeof(EfUnitOfWork);
         var typeBuilder = newModule.DefineType("UnitOfWork", TypeAttributes.Public, efUnitOfWorkType);
         var ctorTypes = efUnitOfWorkType
-            .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, [typeof(TDbContext), typeof(ILogger)])!;
+            .GetConstructor(BindingFlags.Public | BindingFlags.Instance, [typeof(TDbContext)])!;
         // Define the constructor for the dynamic class
         var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public,
             CallingConventions.Standard, [typeof(TDbContext)]);

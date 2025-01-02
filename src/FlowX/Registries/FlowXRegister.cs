@@ -5,13 +5,14 @@ namespace FlowX.Registries;
 
 public class FlowXRegister(IServiceCollection serviceCollection)
 {
-    public Assembly HandlersRegister { get; private set; }
-    public Assembly ModelsAssemblyRegister { get; private set; }
+    public Func<Type, bool> ModelsFilter { get; set; }
+    public Assembly HandlersFromNamespaceContaining { get; private set; }
+    public Assembly ModelsFromNamespaceContaining { get; private set; }
     public IServiceCollection ServiceCollection { get; } = serviceCollection;
 
-    public void AddModelsFromNamespaceContaining<TAssemblyMarker>() =>
-        ModelsAssemblyRegister = typeof(TAssemblyMarker).Assembly;
+    public void AddModelsFromNamespaceContaining<TAssemblyMarker>(Func<Type, bool> modelsFilter = null) =>
+        (ModelsFromNamespaceContaining, ModelsFilter) = (typeof(TAssemblyMarker).Assembly, modelsFilter);
 
-    public void AddHandlersContainNamespaces(Assembly handlersAssembly) =>
-        HandlersRegister = handlersAssembly;
+    public void AddHandlersFromNamespaceContaining<TAssemblyMarker>() =>
+        HandlersFromNamespaceContaining = typeof(TAssemblyMarker).Assembly;
 }

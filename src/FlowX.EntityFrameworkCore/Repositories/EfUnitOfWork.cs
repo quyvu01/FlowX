@@ -5,17 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlowX.EntityFrameworkCore.Repositories;
 
-public class EfUnitOfWork : IUnitOfWork
+public class EfUnitOfWork(DbContext dbContext) : IUnitOfWork
 {
-    private readonly DbContext _dbContext;
-
-    protected EfUnitOfWork(DbContext dbContext) => _dbContext = dbContext;
-
     public async Task<OneOf<None, ErrorDetail>> SaveChangesAsync(CancellationToken token = default)
     {
         try
         {
-            await _dbContext.SaveChangesAsync(token);
+            await dbContext.SaveChangesAsync(token);
             return None.Value;
         }
         catch (Exception e)
