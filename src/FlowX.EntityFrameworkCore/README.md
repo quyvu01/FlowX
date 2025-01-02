@@ -145,7 +145,7 @@ For inquiries, reach out to [your email or GitHub link].
 
 Extend your FlowX capabilities with FlowX.EntityFrameworkCore!
 
-| Package Name                                                              | Description                                                             | .NET Version | Document                                                                                     |
-|---------------------------------------------------------------------------|-------------------------------------------------------------------------|--------------|----------------------------------------------------------------------------------------------|
-| [FlowX](https://www.nuget.org/packages/FlowX/)                            | FlowX core                                                              | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.EntityFrameworkCore/README.md) |
-| [FlowX-EFCore](https://www.nuget.org/packages/FlowX.EntityFrameworkCore/) | This is the FlowX extension package using EntityFramework to fetch data | 8.0, 9.0     | This Document                                                                                |
+| Package Name                                                                           | Description                                                             | .NET Version | Document                                                                                     |
+|----------------------------------------------------------------------------------------|-------------------------------------------------------------------------|--------------|----------------------------------------------------------------------------------------------|
+| [FlowX](https://www.nuget.org/packages/FlowX/)                                         | FlowX core                                                              | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.EntityFrameworkCore/README.md) |
+| [FlowX.EntityFrameworkCore](https://www.nuget.org/packages/FlowX.EntityFrameworkCore/) | This is the FlowX extension package using EntityFramework to fetch data | 8.0, 9.0     | This Document                                                                                |
