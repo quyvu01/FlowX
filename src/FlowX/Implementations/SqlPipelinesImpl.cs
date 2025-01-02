@@ -2,8 +2,8 @@ using FlowX.Abstractions;
 
 namespace FlowX.Implementations;
 
-public class ReceivedPipelinesImpl<TRequest, TResult>(
-    IEnumerable<IReceivedPipelineBehavior<TRequest, TResult>> behaviors,
+public class SqlPipelinesImpl<TRequest, TResult>(
+    IEnumerable<ISqlPipelineBehavior<TRequest, TResult>> behaviors,
     IRequestHandler<TRequest, TResult> handler)
     where TRequest : IRequest<TResult>
 {
