@@ -3,6 +3,8 @@
 FlowX.EntityFrameworkCore is an extension package for the FlowX library, providing seamless integration with Entity
 Framework Core.
 
+[Demo Project](https://github.com/quyvu01/FlowXDemo)
+
 ## Features
 
 - Simplified integration with EF Core repositories.

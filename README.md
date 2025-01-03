@@ -4,6 +4,8 @@ FlowX is a modern library designed to simplify the creation and management of Re
 applications. This library is ideal for developers building enterprise-grade solutions who need a seamless approach to
 implementing CQRS (Command Query Responsibility Segregation) patterns.
 
+[Demo Project](https://github.com/quyvu01/FlowXDemo)
+
 ## Features
 
 - Fluent API for building Request Flows.
