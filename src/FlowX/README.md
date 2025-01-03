@@ -43,9 +43,14 @@ builder.Services.AddFlowX(cfg =>
 {
     cfg.AddModelsFromNamespaceContaining<ITestAssemblyMarker>();
     cfg.AddHandlersFromNamespaceContaining<ITestAssemblyMarker>();
+    cfg.AddSqlPipelines(c => c.OfType<SomeThingPipeline>(serviceLifetime));
 });
 
 ```
+#### Method descriptions
+`AddModelsFromNamespaceContaining<T>`: Registers all models located in the namespace containing the specified assembly marker `(T)`. Use this to automatically include models you’ve created in the same assembly..
+`AddHandlersFromNamespaceContaining<T>` Registers all handlers from the namespace containing the specified assembly marker `(T)`. This ensures any handlers you’ve implemented in that assembly are properly added.
+`AddSqlPipelines` Adds SQL pipelines for processing specific or generic requests. Customize the pipeline behavior using the provided configuration.!
 
 Below is a sample implementation of a `CreateSomeThingHandler` using FlowX(FlowX.EntityFramework sample):
 
@@ -66,6 +71,28 @@ public sealed class CreateSomeThingHandler(
             .WithErrorIfSaveChange(SomeErrorDetail());
 }
 ```
+
+Sample pipeline:
+```csharp
+public sealed class SomeThingPipeline : ISqlPipelineBehavior<GetSomeThingQuery, OneOf<SomeThingResponse, Error>>
+{
+    public async Task<OneOf<SomeThingResponse, Error>> HandleAsync(RequestContext<GetSomeThingQuery> requestContext,
+        Func<Task<OneOf<SomeThingResponse, Error>>> next)
+    {
+        Console.WriteLine("GetUserPipeline");
+        var result = await next.Invoke();
+        return result;
+    }
+}
+```
+
+How to invoke the request:
+
+```csharp
+var sender = ServiceProvider.GetRequiredService<IFlowXSender>();
+var userResult = await sender.ExecuteAsync(new GetUserQuery("1"));
+```
+Like the Mediator Pattern, you don't need to care about the handler and how it do. Just ExecuteAsync
 
 ## Key Concepts
 
