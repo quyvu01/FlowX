@@ -1,12 +1,9 @@
 using FlowX.Abstractions;
 using FlowX.EntityFrameworkCore.Extensions;
-using FlowX.Errors;
 using FlowX.Extensions;
-using FlowX.Structs;
 using FlowX.Tests.DbContexts;
 using FlowX.Tests.Pipelines;
 using FlowX.Tests.Requests;
-using FlowX.Tests.Responses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -55,5 +52,17 @@ public sealed class FlowXEfFlowTest : ServicesBuilding
         var sender = ServiceProvider.GetRequiredService<IFlowXSender>();
         var userResult = await sender.ExecuteAsync(new GetUsersQuery([..ids]));
         Assert.Equal(ids.Length, userResult.Items.Count);
+    }
+
+    [Fact]
+    public async Task User_Should_Be_Created()
+    {
+        var sender = ServiceProvider.GetRequiredService<IFlowXSender>();
+        var userCreatedCommand = new CreateUserCommand("4", "Abc", "ac@gm.co");
+        var userResult = await sender.ExecuteAsync(new CreateUserCommand("4", "Abc", "ac@gm.co"));
+        Assert.True(userResult.IsT0);
+        var newUser = await sender.ExecuteAsync(new GetUserQuery(userCreatedCommand.Id));
+        Assert.True(newUser.IsT0);
+        Assert.Equal(newUser.AsT0.Email, userCreatedCommand.Email);
     }
 }
