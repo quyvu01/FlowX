@@ -2,7 +2,6 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandManyFlow;
-using FlowX.ApplicationModels;
 using FlowX.Errors;
 using FlowX.Structs;
 
@@ -11,17 +10,17 @@ namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandMany;
 public abstract class EfCommandManyVoidHandler<TModel, TCommand>(
     ISqlRepository<TModel> sqlRepository,
     IUnitOfWork unitOfWork)
-    : ICommandHandler<TCommand, OneOf<None, ErrorDetail>>
+    : ICommandHandler<TCommand, OneOf<None, Error>>
     where TModel : class
-    where TCommand : class, ICommand<OneOf<None, ErrorDetail>>
+    where TCommand : class, ICommandVoid
 {
     protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
     protected IUnitOfWork UnitOfWork { get; } = unitOfWork;
 
     protected abstract ICommandManyFlowBuilderVoid<TModel> BuildCommand(
-        IStartManyCommandVoid<TModel> fromFlow, RequestContext<TCommand> command);
+        IStartManyCommandVoid<TModel> fromFlow, RequestContext<TCommand> commandContext);
 
-    public virtual async Task<OneOf<None, ErrorDetail>> HandleAsync(RequestContext<TCommand> requestContext)
+    public virtual async Task<OneOf<None, Error>> HandleAsync(RequestContext<TCommand> requestContext)
     {
         var buildResult = BuildCommand(new CommandManyWithVoidFlow<TModel>(), requestContext);
         var commandType = buildResult.CommandTypeMany;
@@ -55,7 +54,7 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>(
 
         var saveResult = await UnitOfWork.SaveChangesAsync(requestContext.CancellationToken);
         if (saveResult.IsT1)
-            return buildResult.SaveChangesErrorDetail;
+            return buildResult.SaveChangesError;
         return None.Value;
     }
 }

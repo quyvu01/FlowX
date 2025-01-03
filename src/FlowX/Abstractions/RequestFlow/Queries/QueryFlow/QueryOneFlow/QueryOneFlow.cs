@@ -16,7 +16,7 @@ public class QueryOneFlow<TModel, TResponse> :
     public Func<IQueryable<TModel>, IQueryable<TModel>> SpecialAction { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TResponse>> SpecialActionToResponse { get; private set; }
     public Func<TModel, TResponse> MapFunc { get; private set; }
-    public ErrorDetail ErrorDetail { get; private set; }
+    public Error Error { get; private set; }
 
     public IQueryOneSpecialAction<TModel, TResponse> WithFilter(Expression<Func<TModel, bool>> filter)
     {
@@ -40,9 +40,9 @@ public class QueryOneFlow<TModel, TResponse> :
         return this;
     }
 
-    public IQueryOneFlowBuilder<TModel, TResponse> WithErrorIfNull([NotNull] ErrorDetail errorDetail)
+    public IQueryOneFlowBuilder<TModel, TResponse> WithErrorIfNull([NotNull] Error error)
     {
-        ErrorDetail = errorDetail;
+        Error = error;
         return this;
     }
 

@@ -41,21 +41,21 @@ public class CommandManyResultFlow<TModel, TResult> :
     }
 
     public ISaveChangesManyErrorDetailResult<TModel, TResult> WithCondition(
-        Func<List<TModel>, OneOf<None, ErrorDetail>> condition)
+        Func<List<TModel>, OneOf<None, Error>> condition)
     {
         CommandManyCondition = models => Task.FromResult(condition.Invoke(models));
         return this;
     }
 
     public ISaveChangesManyErrorDetailResult<TModel, TResult> WithCondition(
-        Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> conditionAsync)
+        Func<List<TModel>, Task<OneOf<None, Error>>> conditionAsync)
     {
         CommandManyCondition = conditionAsync;
         return this;
     }
 
     IUpdateManyModifyResult<TModel, TResult> IUpdateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> conditionAsync)
+        Func<List<TModel>, Task<OneOf<None, Error>>> conditionAsync)
     {
         CommandManyCondition = conditionAsync;
         return this;
@@ -63,7 +63,7 @@ public class CommandManyResultFlow<TModel, TResult> :
 
     ISaveChangesManyErrorDetailResult<TModel, TResult> IRemoveManyConditionResult<TModel, TResult>.
         WithCondition(
-            Func<List<TModel>, OneOf<None, ErrorDetail>> condition)
+            Func<List<TModel>, OneOf<None, Error>> condition)
     {
         CommandManyCondition = models => Task.FromResult(condition.Invoke(models));
         return this;
@@ -71,14 +71,14 @@ public class CommandManyResultFlow<TModel, TResult> :
 
     ISaveChangesManyErrorDetailResult<TModel, TResult> IRemoveManyConditionResult<TModel, TResult>.
         WithCondition(
-            Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> conditionAsync)
+            Func<List<TModel>, Task<OneOf<None, Error>>> conditionAsync)
     {
         CommandManyCondition = conditionAsync;
         return this;
     }
 
     IUpdateManyModifyResult<TModel, TResult> IUpdateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, OneOf<None, ErrorDetail>> condition)
+        Func<List<TModel>, OneOf<None, Error>> condition)
     {
         CommandManyCondition = models => Task.FromResult(condition.Invoke(models));
         return this;
@@ -131,17 +131,17 @@ public class CommandManyResultFlow<TModel, TResult> :
         return this;
     }
 
-    public ISaveChangesManySucceedResult<TModel, TResult> WithErrorIfSaveChange(ErrorDetail errorDetail)
+    public ISaveChangesManySucceedResult<TModel, TResult> WithErrorIfSaveChange(Error error)
     {
-        SaveChangesErrorDetail = errorDetail;
+        SaveChangesError = error;
         return this;
     }
 
     ISaveChangesManyErrorDetailResult<TModel, TResult> ICommandManyErrorDetailResult<TModel, TResult>.
         WithErrorIfNull(
-            ErrorDetail errorDetail)
+            Error error)
     {
-        NullErrorDetail = errorDetail;
+        NullError = error;
         return this;
     }
 
@@ -154,11 +154,11 @@ public class CommandManyResultFlow<TModel, TResult> :
 
     public CommandTypeMany CommandTypeMany { get; private set; } = CommandTypeMany.Unknown;
     public Func<Task<List<TModel>>> ModelsCreateFunc { get; private set; }
-    public Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> CommandManyCondition { get; private set; }
+    public Func<List<TModel>, Task<OneOf<None, Error>>> CommandManyCondition { get; private set; }
     public Expression<Func<TModel, bool>> CommandFilter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; private set; }
     public Func<List<TModel>, Task> UpdateManyFunc { get; private set; }
-    public ErrorDetail NullErrorDetail { get; private set; }
-    public ErrorDetail SaveChangesErrorDetail { get; private set; }
+    public Error NullError { get; private set; }
+    public Error SaveChangesError { get; private set; }
     public Func<List<TModel>, TResult> ResultFunc { get; private set; }
 }

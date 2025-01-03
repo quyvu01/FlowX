@@ -1,3 +1,5 @@
+using FlowX.Abstractions;
+using FlowX.Implementations;
 using FlowX.Registries;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +11,8 @@ public static class FlowXExtensions
     {
         var newFlowXRegister = new FlowXRegister(serviceCollection);
         options.Invoke(newFlowXRegister);
+        serviceCollection.AddTransient(typeof(SqlPipelinesImpl<,>));
+        serviceCollection.AddTransient<IFlowXSender, FlowXSender>();
         return newFlowXRegister;
     }
 }

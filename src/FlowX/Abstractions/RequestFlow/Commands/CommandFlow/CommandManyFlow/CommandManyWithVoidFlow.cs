@@ -40,42 +40,42 @@ public class CommandManyWithVoidFlow<TModel> :
     }
 
     public ISaveChangesManyErrorDetailVoid<TModel> WithCondition(
-        Func<List<TModel>, OneOf<None, ErrorDetail>> condition)
+        Func<List<TModel>, OneOf<None, Error>> condition)
     {
         CommandManyCondition = models => Task.FromResult(condition.Invoke(models));
         return this;
     }
 
     public ISaveChangesManyErrorDetailVoid<TModel> WithCondition(
-        Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> conditionAsync)
+        Func<List<TModel>, Task<OneOf<None, Error>>> conditionAsync)
     {
         CommandManyCondition = conditionAsync;
         return this;
     }
 
     IUpdateManyModifyVoid<TModel> IUpdateManyConditionVoid<TModel>.WithCondition(
-        Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> conditionAsync)
+        Func<List<TModel>, Task<OneOf<None, Error>>> conditionAsync)
     {
         CommandManyCondition = conditionAsync;
         return this;
     }
 
     ISaveChangesManyErrorDetailVoid<TModel> IRemoveManyConditionVoid<TModel>.WithCondition(
-        Func<List<TModel>, OneOf<None, ErrorDetail>> condition)
+        Func<List<TModel>, OneOf<None, Error>> condition)
     {
         CommandManyCondition = models => Task.FromResult(condition.Invoke(models));
         return this;
     }
 
     ISaveChangesManyErrorDetailVoid<TModel> IRemoveManyConditionVoid<TModel>.WithCondition(
-        Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> conditionAsync)
+        Func<List<TModel>, Task<OneOf<None, Error>>> conditionAsync)
     {
         CommandManyCondition = conditionAsync;
         return this;
     }
 
     IUpdateManyModifyVoid<TModel> IUpdateManyConditionVoid<TModel>.WithCondition(
-        Func<List<TModel>, OneOf<None, ErrorDetail>> condition)
+        Func<List<TModel>, OneOf<None, Error>> condition)
     {
         CommandManyCondition = models => Task.FromResult(condition.Invoke(models));
         return this;
@@ -127,15 +127,15 @@ public class CommandManyWithVoidFlow<TModel> :
     }
 
     ISaveChangesManyErrorDetailVoid<TModel> ICommandManyErrorDetailVoid<TModel>.WithErrorIfNull(
-        ErrorDetail errorDetail)
+        Error error)
     {
-        NullErrorDetail = errorDetail;
+        NullError = error;
         return this;
     }
 
-    public ICommandManyFlowBuilderVoid<TModel> WithErrorIfSaveChange(ErrorDetail errorDetail)
+    public ICommandManyFlowBuilderVoid<TModel> WithErrorIfSaveChange(Error error)
     {
-        SaveChangesErrorDetail = errorDetail;
+        SaveChangesError = error;
         return this;
     }
 
@@ -147,11 +147,11 @@ public class CommandManyWithVoidFlow<TModel> :
 
     public CommandTypeMany CommandTypeMany { get; private set; } = CommandTypeMany.Unknown;
     public Func<Task<List<TModel>>> ModelsCreateFunc { get; private set; }
-    public Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> CommandManyCondition { get; private set; }
+    public Func<List<TModel>, Task<OneOf<None, Error>>> CommandManyCondition { get; private set; }
     public Expression<Func<TModel, bool>> CommandFilter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; private set; }
     public Func<List<TModel>, Task> UpdateManyFunc { get; private set; }
-    public ErrorDetail NullErrorDetail { get; private set; }
-    public ErrorDetail SaveChangesErrorDetail { get; private set; }
+    public Error NullError { get; private set; }
+    public Error SaveChangesError { get; private set; }
     public Func<List<TModel>> ResultFunc { get; private set; }
 }

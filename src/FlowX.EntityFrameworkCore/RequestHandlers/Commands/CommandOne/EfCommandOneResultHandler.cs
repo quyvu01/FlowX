@@ -10,17 +10,17 @@ namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandOne;
 public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
     ISqlRepository<TModel> sqlRepository,
     IUnitOfWork unitOfWork)
-    : ICommandHandler<TCommand, OneOf<TResult, ErrorDetail>>
+    : ICommandHandler<TCommand, OneOf<TResult, Error>>
     where TModel : class
-    where TCommand : class, ICommand<OneOf<TResult, ErrorDetail>>
+    where TCommand : class, ICommandResult<TResult>
 {
     protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
     protected IUnitOfWork UnitOfWork { get; } = unitOfWork;
 
     protected abstract ICommandOneFlowBuilderResult<TModel, TResult> BuildCommand(
-        IStartOneCommandResult<TModel, TResult> fromFlow, RequestContext<TCommand> command);
+        IStartOneCommandResult<TModel, TResult> fromFlow, RequestContext<TCommand> commandContext);
 
-    public virtual async Task<OneOf<TResult, ErrorDetail>> HandleAsync(RequestContext<TCommand> requestContext)
+    public virtual async Task<OneOf<TResult, Error>> HandleAsync(RequestContext<TCommand> requestContext)
     {
         var buildResult = BuildCommand(new CommandOneResultFlow<TModel, TResult>(), requestContext);
         var commandType = buildResult.CommandTypeOne;
@@ -58,7 +58,7 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
 
         var saveResult = await UnitOfWork.SaveChangesAsync(requestContext.CancellationToken);
         if (saveResult.IsT1)
-            return buildResult.SaveChangesErrorDetail;
+            return buildResult.SaveChangesError;
         var result = buildResult.ResultFunc.Invoke(item);
         return result;
     }

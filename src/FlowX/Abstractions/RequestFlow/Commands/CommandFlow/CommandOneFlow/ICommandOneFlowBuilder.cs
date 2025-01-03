@@ -9,22 +9,22 @@ public interface ICommandOneFlowBuilderResult<TModel, out TResult> where TModel 
 {
     CommandTypeOne CommandTypeOne { get; }
     Func<Task<TModel>> ModelCreateFunc { get; }
-    Func<TModel, Task<OneOf<None, ErrorDetail>>> CommandOneCondition { get; }
+    Func<TModel, Task<OneOf<None, Error>>> CommandOneCondition { get; }
     Expression<Func<TModel, bool>> CommandFilter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; }
     Func<TModel, Task> UpdateOneFunc { get; }
-    ErrorDetail NullErrorDetail { get; }
-    ErrorDetail SaveChangesErrorDetail { get; }
+    Error NullError { get; }
+    Error SaveChangesError { get; }
     Func<TModel, TResult> ResultFunc { get; }
 }
 public interface ICommandOneFlowBuilderVoid<TModel> where TModel : class
 {
     CommandTypeOne CommandTypeOne { get; }
     Func<Task<TModel>> ModelCreateFunc { get; }
-    Func<TModel, Task<OneOf<None, ErrorDetail>>> CommandOneCondition { get; }
+    Func<TModel, Task<OneOf<None, Error>>> CommandOneCondition { get; }
     Expression<Func<TModel, bool>> CommandFilter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; }
     Func<TModel, Task> UpdateOneFunc { get; }
-    ErrorDetail NullErrorDetail { get; }
-    ErrorDetail SaveChangesErrorDetail { get; }
+    Error NullError { get; }
+    Error SaveChangesError { get; }
 }

@@ -1,6 +1,8 @@
 namespace FlowX.Abstractions;
 
-public interface IRequestHandler<in TRequest, TResult> where TRequest : IRequest<TResult>
+public interface IRequestHandlerBase;
+
+public interface IRequestHandler<in TRequest, TResult> : IRequestHandlerBase where TRequest : IRequest<TResult>
 {
     Task<TResult> HandleAsync(RequestContext<TRequest> requestContext);
 }

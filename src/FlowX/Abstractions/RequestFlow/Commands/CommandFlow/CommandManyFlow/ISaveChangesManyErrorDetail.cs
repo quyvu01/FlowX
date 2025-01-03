@@ -5,10 +5,10 @@ namespace FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandManyFlow;
 
 public interface ISaveChangesManyErrorDetailResult<TModel, TResult> where TModel : class
 {
-    ISaveChangesManySucceedResult<TModel, TResult> WithErrorIfSaveChange([NotNull] ErrorDetail errorDetail);
+    ISaveChangesManySucceedResult<TModel, TResult> WithErrorIfSaveChange([NotNull] Error error);
 }
 
 public interface ISaveChangesManyErrorDetailVoid<TModel> where TModel : class
 {
-    ICommandManyFlowBuilderVoid<TModel> WithErrorIfSaveChange([NotNull] ErrorDetail errorDetail);
+    ICommandManyFlowBuilderVoid<TModel> WithErrorIfSaveChange([NotNull] Error error);
 }

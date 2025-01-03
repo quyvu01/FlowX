@@ -5,5 +5,5 @@ namespace FlowX.Abstractions;
 
 public interface IUnitOfWork
 {
-    Task<OneOf<None, ErrorDetail>> SaveChangesAsync(CancellationToken token = default);
+    Task<OneOf<None, Error>> SaveChangesAsync(CancellationToken token = default);
 }

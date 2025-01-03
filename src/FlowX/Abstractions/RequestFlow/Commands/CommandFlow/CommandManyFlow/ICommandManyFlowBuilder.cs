@@ -9,12 +9,12 @@ public interface ICommandManyFlowBuilderResult<TModel, out TResult> where TModel
 {
     CommandTypeMany CommandTypeMany { get; }
     Func<Task<List<TModel>>> ModelsCreateFunc { get; }
-    Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> CommandManyCondition { get; }
+    Func<List<TModel>, Task<OneOf<None, Error>>> CommandManyCondition { get; }
     Expression<Func<TModel, bool>> CommandFilter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; }
     Func<List<TModel>, Task> UpdateManyFunc { get; }
-    ErrorDetail NullErrorDetail { get; }
-    ErrorDetail SaveChangesErrorDetail { get; }
+    Error NullError { get; }
+    Error SaveChangesError { get; }
     Func<List<TModel>, TResult> ResultFunc { get; }
 }
 
@@ -22,10 +22,10 @@ public interface ICommandManyFlowBuilderVoid<TModel> where TModel : class
 {
     CommandTypeMany CommandTypeMany { get; }
     Func<Task<List<TModel>>> ModelsCreateFunc { get; }
-    Func<List<TModel>, Task<OneOf<None, ErrorDetail>>> CommandManyCondition { get; }
+    Func<List<TModel>, Task<OneOf<None, Error>>> CommandManyCondition { get; }
     Expression<Func<TModel, bool>> CommandFilter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; }
     Func<List<TModel>, Task> UpdateManyFunc { get; }
-    ErrorDetail NullErrorDetail { get; }
-    ErrorDetail SaveChangesErrorDetail { get; }
+    Error NullError { get; }
+    Error SaveChangesError { get; }
 }

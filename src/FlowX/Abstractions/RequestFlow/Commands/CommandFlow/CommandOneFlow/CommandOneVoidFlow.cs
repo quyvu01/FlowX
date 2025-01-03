@@ -20,12 +20,12 @@ public class CommandOneVoidFlow<TModel> :
 {
     public CommandTypeOne CommandTypeOne { get; private set; } = CommandTypeOne.Unknown;
     public Func<Task<TModel>> ModelCreateFunc { get; private set; }
-    public Func<TModel, Task<OneOf<None, ErrorDetail>>> CommandOneCondition { get; private set; }
+    public Func<TModel, Task<OneOf<None, Error>>> CommandOneCondition { get; private set; }
     public Expression<Func<TModel, bool>> CommandFilter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; private set; }
     public Func<TModel, Task> UpdateOneFunc { get; private set; }
-    public ErrorDetail NullErrorDetail { get; private set; }
-    public ErrorDetail SaveChangesErrorDetail { get; private set; }
+    public Error NullError { get; private set; }
+    public Error SaveChangesError { get; private set; }
 
     public ICreateOneConditionVoid<TModel> CreateOne(Func<Task<TModel>> modelFunc)
     {
@@ -63,42 +63,42 @@ public class CommandOneVoidFlow<TModel> :
     }
 
     ISaveChangesOneErrorDetailVoid<TModel> ICreateOneConditionVoid<TModel>.WithCondition(
-        Func<TModel, OneOf<None, ErrorDetail>> condition)
+        Func<TModel, OneOf<None, Error>> condition)
     {
         CommandOneCondition = model => Task.FromResult(condition.Invoke(model));
         return this;
     }
 
     ICommandOneErrorDetailVoid<TModel> IRemoveOneConditionVoid<TModel>.WithCondition(
-        Func<TModel, Task<OneOf<None, ErrorDetail>>> conditionAsync)
+        Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
     {
         CommandOneCondition = conditionAsync;
         return this;
     }
 
     ICommandOneErrorDetailVoid<TModel> IRemoveOneConditionVoid<TModel>.WithCondition(
-        Func<TModel, OneOf<None, ErrorDetail>> condition)
+        Func<TModel, OneOf<None, Error>> condition)
     {
         CommandOneCondition = model => Task.FromResult(condition.Invoke(model));
         return this;
     }
 
     IUpdateOneModifyVoid<TModel> IUpdateOneConditionVoid<TModel>.WithCondition(
-        Func<TModel, Task<OneOf<None, ErrorDetail>>> conditionAsync)
+        Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
     {
         CommandOneCondition = conditionAsync;
         return this;
     }
 
     IUpdateOneModifyVoid<TModel> IUpdateOneConditionVoid<TModel>.WithCondition(
-        Func<TModel, OneOf<None, ErrorDetail>> condition)
+        Func<TModel, OneOf<None, Error>> condition)
     {
         CommandOneCondition = model => Task.FromResult(condition.Invoke(model));
         return this;
     }
 
     ISaveChangesOneErrorDetailVoid<TModel> ICreateOneConditionVoid<TModel>.WithCondition(
-        Func<TModel, Task<OneOf<None, ErrorDetail>>> conditionAsync)
+        Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
     {
         CommandOneCondition = conditionAsync;
         return this;
@@ -134,15 +134,15 @@ public class CommandOneVoidFlow<TModel> :
         return this;
     }
 
-    public ISaveChangesOneErrorDetailVoid<TModel> WithErrorIfNull(ErrorDetail errorDetail)
+    public ISaveChangesOneErrorDetailVoid<TModel> WithErrorIfNull(Error error)
     {
-        NullErrorDetail = errorDetail;
+        NullError = error;
         return this;
     }
 
-    public ICommandOneFlowBuilderVoid<TModel> WithErrorIfSaveChange(ErrorDetail errorDetail)
+    public ICommandOneFlowBuilderVoid<TModel> WithErrorIfSaveChange(Error error)
     {
-        SaveChangesErrorDetail = errorDetail;
+        SaveChangesError = error;
         return this;
     }
 }

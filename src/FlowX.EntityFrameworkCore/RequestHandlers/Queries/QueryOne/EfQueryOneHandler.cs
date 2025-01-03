@@ -11,7 +11,7 @@ namespace FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryOne;
 
 public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>(
     ISqlRepository<TModel> sqlRepository)
-    : IQueryHandler<TQuery, OneOf<TResponse, ErrorDetail>>
+    : IQueryHandler<TQuery, OneOf<TResponse, Error>>
     where TModel : class
     where TQuery : class, IQueryOne<TResponse>
     where TResponse : class
@@ -19,9 +19,9 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>(
     protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
 
     protected abstract IQueryOneFlowBuilder<TModel, TResponse> BuildQueryFlow(
-        IQueryOneFilter<TModel, TResponse> fromFlow, RequestContext<TQuery> query);
+        IQueryOneFilter<TModel, TResponse> fromFlow, RequestContext<TQuery> queryContext);
 
-    public virtual async Task<OneOf<TResponse, ErrorDetail>> HandleAsync(RequestContext<TQuery> requestContext)
+    public virtual async Task<OneOf<TResponse, Error>> HandleAsync(RequestContext<TQuery> requestContext)
     {
         var buildResult = BuildQueryFlow(new QueryOneFlow<TModel, TResponse>(), requestContext);
         switch (buildResult.QuerySpecialActionType)
@@ -33,7 +33,7 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>(
                 var item = await SqlRepository.GetFirstByConditionAsync(buildResult.Filter,
                     db => buildResult.SpecialAction?
                         .Invoke(db.AsNoTracking()) ?? db.AsNoTracking(), requestContext.CancellationToken);
-                if (item is null) return buildResult.ErrorDetail;
+                if (item is null) return buildResult.Error;
                 return buildResult.MapFunc.Invoke(item);
             }
             case QuerySpecialActionType.ToTarget:
