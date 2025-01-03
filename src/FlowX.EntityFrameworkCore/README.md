@@ -6,11 +6,14 @@ Framework Core.
 ## Features
 
 - Simplified integration with EF Core repositories.
-- Built-in support for Unit of Work patterns.
-- Customizable database interaction flows.
-- Enhanced error handling for EF Core operations.
-- Easy-to-use fluent API for managing EF Core entities.
-- Fully supports CRUD flows like CreateOne, CreateMany, GetOne, GetCollection, GetPaged, and GetCounting...
+- Built-in support for the Unit of Work pattern.
+- Customizable database interaction flows for greater flexibility.
+- Enhanced error handling for EF Core operations, ensuring reliability.
+- Intuitive fluent API for managing EF Core entities with ease.
+- Dynamic repository generation based on your models. Simply implement the IEfModel interface, and the rest is handled automatically!
+- Comprehensive support for CRUD operations, including methods like CreateOne, CreateMany, GetOne, GetCollection, GetPaged, and GetCount.
+- Build custom request flows by inheriting classes such as EfQueryOneHandler, EfQueryCollectionHandler, and EfCommandVoidHandler...
+- Effortless debugging and maintenance: With everything organized as a flow, you can easily trace issues, maintain your codebase, and scale up with confidence.
 
 ## Getting Started
 
