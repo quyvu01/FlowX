@@ -15,7 +15,7 @@ public sealed class FlowXSender(IServiceProvider serviceProvider) : IFlowXSender
         if (!hasRequestMapped)
             throw new FlowXExceptions.NoHandlerForRequestHasBeenRegistered(requestType);
         var pipeline = serviceProvider
-            .GetRequiredService(typeof(SqlPipelinesImpl<,>).MakeGenericType(requestType, responseType));
+            .GetRequiredService(typeof(FlowPipelinesImpl<,>).MakeGenericType(requestType, responseType));
         var method = pipeline.GetType()
             .GetMethod("ExecuteAsync", [typeof(RequestContext<>).MakeGenericType(requestType)]);
         if (method is null) throw new UnreachableException();

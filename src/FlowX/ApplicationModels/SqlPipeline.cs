@@ -6,7 +6,7 @@ namespace FlowX.ApplicationModels;
 
 public sealed class SqlPipeline(IServiceCollection serviceCollection)
 {
-    private static readonly Type interfaceReceivedPipeline = typeof(ISqlPipelineBehavior<,>);
+    private static readonly Type interfaceReceivedPipeline = typeof(IFlowPipelineBehavior<,>);
 
     public SqlPipeline OfType<TReceivedPipeline>(ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
     {

@@ -7,8 +7,6 @@ public readonly struct None : IEquatable<None>, IComparable<None>, IComparable
 
     public static ref readonly None Value => ref _value;
 
-    public static Task<None> Task { get; } = System.Threading.Tasks.Task.FromResult(_value);
-
     /// <summary>
     /// Compares the current object with another object of the same type.
     /// </summary>

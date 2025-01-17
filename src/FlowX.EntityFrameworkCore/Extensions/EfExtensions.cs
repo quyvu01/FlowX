@@ -96,7 +96,8 @@ public static class EfExtensions
 
     private static void AddEfRequestHandlersAsScope(IServiceCollection serviceCollection,
         Assembly handlersAssembly) => handlersAssembly.ExportedTypes
-        .Where(x => typeof(IRequestHandlerBase).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false })
+        .Where(x => typeof(IRequestHandlerBase).IsAssignableFrom(x) &&
+                    x is { IsInterface: false, IsAbstract: false })
         .ForEach(handlerType =>
         {
             var basedType = handlerType.BaseType;

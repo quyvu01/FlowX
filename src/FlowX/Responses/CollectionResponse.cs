@@ -1,15 +1,7 @@
 namespace FlowX.Responses;
 
-public sealed class CollectionResponse<T> where T : class
+public sealed class CollectionResponse<T>(List<T> items) where T : class
 {
-    public List<T> Items { get; set; }
-    public long TotalRecord { get; set; }
-
-    public CollectionResponse()
-    {
-    }
-
-    public CollectionResponse(List<T> items, long totalRecord) => (Items, TotalRecord) = (items, totalRecord);
-
-    public CollectionResponse(List<T> items) => (Items, TotalRecord) = (items, items.Count);
+    public List<T> Items { get; } = items;
+    public long TotalRecord { get; } = items.Count;
 }

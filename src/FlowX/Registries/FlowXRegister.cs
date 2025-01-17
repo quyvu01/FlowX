@@ -5,7 +5,7 @@ namespace FlowX.Registries;
 
 public class FlowXRegister(IServiceCollection serviceCollection)
 {
-    public Func<Type, bool> ModelsFilter { get; set; }
+    public Func<Type, bool> ModelsFilter { get; private set; }
     public Assembly HandlersFromNamespaceContaining { get; private set; }
     public Assembly ModelsFromNamespaceContaining { get; private set; }
     public IServiceCollection ServiceCollection { get; } = serviceCollection;

@@ -2,7 +2,12 @@ using System.Diagnostics;
 
 namespace FlowX.Structs;
 
-public readonly struct OneOf<T0, T1>
+public interface OneOf
+{
+    object Value { get; }
+}
+
+public readonly struct OneOf<T0, T1> : OneOf
 {
     private readonly T0 _t0;
     private readonly T1 _t1;
@@ -50,8 +55,26 @@ public readonly struct OneOf<T0, T1>
         IsT1 = true;
     }
 
+    private OneOf(object obj)
+    {
+        switch (obj)
+        {
+            case T0 t0:
+                _t0 = t0;
+                IsT0 = true;
+                return;
+            case T1 t1:
+                _t1 = t1;
+                IsT1 = true;
+                return;
+            default:
+                throw new Exception($"Object is not {typeof(T0).Name} or {typeof(T1).Name}");
+        }
+    }
+
     public static OneOf<T0, T1> FromT0(T0 to) => new(to);
     public static OneOf<T0, T1> FromT1(T1 t1) => new(t1);
+    public static OneOf<T0, T1> FromObject(object obj) => new(obj);
 
     public static implicit operator OneOf<T0, T1>(T0 t0) => new(t0);
     public static implicit operator OneOf<T0, T1>(T1 t1) => new(t1);

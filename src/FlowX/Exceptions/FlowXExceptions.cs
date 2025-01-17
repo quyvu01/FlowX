@@ -7,4 +7,7 @@ public static class FlowXExceptions
 
     public sealed class PipelineIsNotSqlPipelineBehavior(Type type) :
         Exception($"The input pipeline: {type.Name} is not matched with SqlPipeline. Please check again!");
+
+    public sealed class NoMatchingTypeForResponse(string typeAssembly) :
+        Exception($"There are no any type are matched for response: {typeAssembly}!");
 }
