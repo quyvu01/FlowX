@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace FlowX.Structs;
 
@@ -78,4 +79,6 @@ public readonly struct OneOf<T0, T1> : OneOf
 
     public static implicit operator OneOf<T0, T1>(T0 t0) => new(t0);
     public static implicit operator OneOf<T0, T1>(T1 t1) => new(t1);
+
+    public override string ToString() => JsonSerializer.Serialize(Value);
 }

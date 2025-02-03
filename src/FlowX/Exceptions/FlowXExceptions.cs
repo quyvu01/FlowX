@@ -10,4 +10,7 @@ public static class FlowXExceptions
 
     public sealed class NoMatchingTypeForResponse(string typeAssembly) :
         Exception($"There are no any type are matched for response: {typeAssembly}!");
+    
+    public sealed class CannotFindRequestType(Type requestType) :
+        Exception($"Cannot find request type: {requestType.Name}!");
 }

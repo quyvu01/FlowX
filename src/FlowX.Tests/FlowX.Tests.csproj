@@ -25,6 +25,7 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\FlowX.EntityFrameworkCore\FlowX.EntityFrameworkCore.csproj" />
+      <ProjectReference Include="..\FlowX.Nats\FlowX.Nats.csproj" />
       <ProjectReference Include="..\FlowX\FlowX.csproj" />
     </ItemGroup>
 </Project>

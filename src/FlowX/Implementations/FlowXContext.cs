@@ -2,7 +2,7 @@ using FlowX.Abstractions;
 
 namespace FlowX.Implementations;
 
-internal sealed class InternalFlowXContext<TRequest>(
+public sealed class FlowXContext<TRequest>(
     TRequest request,
     Dictionary<string, string> headers,
     CancellationToken cancellationToken)

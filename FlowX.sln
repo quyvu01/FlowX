@@ -8,6 +8,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowX.Tests", "src\FlowX.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowX.Nats", "src\FlowX.Nats\FlowX.Nats.csproj", "{37EA85A7-44C5-41E9-B8CD-59DA038B6822}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "FlowX.Core", "FlowX.Core", "{1EACC6C0-77AC-4B9E-B5E9-31285AABC480}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "FlowX.DataProviders", "FlowX.DataProviders", "{D3F7B243-B2ED-4C85-A752-3F0816663336}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "FlowX.Transports", "FlowX.Transports", "{51D6BA9E-0009-4F2E-B3D5-6565B125230E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +36,10 @@ Global
 		{37EA85A7-44C5-41E9-B8CD-59DA038B6822}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{37EA85A7-44C5-41E9-B8CD-59DA038B6822}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{37EA85A7-44C5-41E9-B8CD-59DA038B6822}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{10428EF3-8BA7-43FC-B667-A8F6C7D3A519} = {1EACC6C0-77AC-4B9E-B5E9-31285AABC480}
+		{C19DD816-2FD9-46F9-9F1C-60CA4DDA7D64} = {D3F7B243-B2ED-4C85-A752-3F0816663336}
+		{37EA85A7-44C5-41E9-B8CD-59DA038B6822} = {51D6BA9E-0009-4F2E-B3D5-6565B125230E}
 	EndGlobalSection
 EndGlobal

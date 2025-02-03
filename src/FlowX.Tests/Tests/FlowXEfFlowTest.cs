@@ -1,6 +1,7 @@
 using FlowX.Abstractions;
 using FlowX.EntityFrameworkCore.Extensions;
 using FlowX.Extensions;
+using FlowX.Nats.Extensions;
 using FlowX.Tests.DbContexts;
 using FlowX.Tests.Pipelines;
 using FlowX.Tests.Requests;
@@ -29,7 +30,8 @@ public sealed class FlowXEfFlowTest : ServicesBuilding
                         options.AddDynamicUnitOfWork();
                     });
                     cfg.AddSqlPipelines(c => c.OfType<GetUserPipeline>(ServiceLifetime.Transient));
-                });
+                })
+                .AddNats(config => config.Url("nats://localhost:4222"));
             })
             .InstallAllServices();
         var dbContext = ServiceProvider.GetRequiredService<TestDbContext>();
