@@ -6,6 +6,7 @@ namespace FlowX.Extensions;
 
 public static class Extensions
 {
+    public static string GetAssemblyName(this Type type) => $"{type.FullName},{type.Assembly.GetName().Name}";
     public static void ForEach<T>(this IEnumerable<T> src, Action<T> action)
     {
         foreach (var item in src ?? []) action?.Invoke(item);

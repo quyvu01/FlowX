@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using FlowX.Abstractions;
 using FlowX.Cached;
-using FlowX.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FlowX.Implementations;
@@ -12,11 +11,9 @@ public sealed class FlowXSender(IServiceProvider serviceProvider) : IFlowXSender
     {
         const string executeAsyncName = nameof(FlowPipelinesImpl<IRequest<TResult>, TResult>.ExecuteAsync);
         var requestType = request.GetType();
-        var hasRequestMapped = FlowXCached.RequestMapResponse.Value.TryGetValue(requestType, out var responseType);
-        if (!hasRequestMapped)
-            throw new FlowXExceptions.NoHandlerForRequestHasBeenRegistered(requestType);
+
         var pipeline = serviceProvider
-            .GetRequiredService(typeof(FlowPipelinesImpl<,>).MakeGenericType(requestType, responseType));
+            .GetRequiredService(typeof(FlowPipelinesImpl<,>).MakeGenericType(requestType, typeof(TResult)));
         var method = pipeline.GetType()
             .GetMethod(executeAsyncName, [typeof(RequestContext<>).MakeGenericType(requestType)]);
         if (method is null) throw new UnreachableException();

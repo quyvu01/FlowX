@@ -30,8 +30,8 @@ public sealed class FlowXEfFlowTest : ServicesBuilding
                         options.AddDynamicUnitOfWork();
                     });
                     cfg.AddSqlPipelines(c => c.OfType<GetUserPipeline>(ServiceLifetime.Transient));
-                })
-                .AddNats(config => config.Url("nats://localhost:4222"));
+                    cfg.AddNats(config => config.Url("nats://localhost:4222"));
+                });
             })
             .InstallAllServices();
         var dbContext = ServiceProvider.GetRequiredService<TestDbContext>();

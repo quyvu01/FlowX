@@ -1,6 +1,8 @@
 using System.Text.Json;
 using FlowX.Abstractions;
+using FlowX.Extensions;
 using FlowX.Implementations;
+using FlowX.Messages;
 using FlowX.Nats.Abstractions;
 using FlowX.Nats.Extensions;
 using FlowX.Nats.Wrappers;
@@ -15,11 +17,12 @@ internal class NatsServerRpc<TRequest, TResult>(IServiceProvider serviceProvider
     {
         var natsClient = serviceProvider.GetRequiredService<NatsClientWrapper>();
         var natsScribeAsync = natsClient.NatsClient
-            .SubscribeAsync<NatMessageWrapper>(typeof(TRequest).GetNatsSubject());
+            .SubscribeAsync<NatsMessageWrapper>(typeof(TRequest).GetNatsSubject());
         await foreach (var message in natsScribeAsync)
         {
             if (message.Data is not { } data) continue;
-            var pipeline = serviceProvider
+            using var scope = serviceProvider.CreateScope();
+            var pipeline = scope.ServiceProvider
                 .GetRequiredService<FlowPipelinesImpl<TRequest, TResult>>();
             var request = JsonSerializer.Deserialize<TRequest>(data.MessageAsString);
             var headers = message.Headers?
@@ -27,7 +30,16 @@ internal class NatsServerRpc<TRequest, TResult>(IServiceProvider serviceProvider
             var requestContext = new FlowXContext<TRequest>(request, headers, CancellationToken.None);
             // Invoke the method and get the result
             var response = await pipeline.ExecuteAsync(requestContext);
-            await natsClient.NatsClient.PublishAsync(message.ReplyTo!, response);
+            var replyAddress = message.ReplyTo!;
+            if (response is IMessageSerialized oneOf)
+            {
+                await natsClient.NatsClient.PublishAsync(replyAddress, oneOf.Serialize());
+                continue;
+            }
+
+            var messageSerialize = new MessageSerialized
+                { Type = typeof(TResult).GetAssemblyName(), ObjectSerialized = JsonSerializer.Serialize(response) };
+            await natsClient.NatsClient.PublishAsync(replyAddress, messageSerialize);
         }
     }
 }

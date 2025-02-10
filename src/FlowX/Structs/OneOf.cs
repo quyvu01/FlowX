@@ -1,5 +1,8 @@
 using System.Diagnostics;
 using System.Text.Json;
+using FlowX.Abstractions;
+using FlowX.Extensions;
+using FlowX.Messages;
 
 namespace FlowX.Structs;
 
@@ -8,7 +11,7 @@ public interface OneOf
     object Value { get; }
 }
 
-public readonly struct OneOf<T0, T1> : OneOf
+public readonly struct OneOf<T0, T1> : OneOf, IMessageSerialized
 {
     private readonly T0 _t0;
     private readonly T1 _t1;
@@ -18,6 +21,13 @@ public readonly struct OneOf<T0, T1> : OneOf
     public bool IsT1 { get; }
 
     public object Value => IsT0 ? AsT0 : IsT1 ? AsT1 : throw new UnreachableException();
+
+    public MessageSerialized Serialize()
+    {
+        var type = IsT0 ? typeof(T0).GetAssemblyName() : typeof(T1).GetAssemblyName();
+        return new MessageSerialized
+            { Type = type, ObjectSerialized = Value is not null ? JsonSerializer.Serialize(Value) : null };
+    }
 
     public void Switch(Action<T0> t0Action, Action<T1> t1Action)
     {
@@ -56,7 +66,7 @@ public readonly struct OneOf<T0, T1> : OneOf
         IsT1 = true;
     }
 
-    private OneOf(object obj)
+    public OneOf(object obj)
     {
         switch (obj)
         {
@@ -75,7 +85,6 @@ public readonly struct OneOf<T0, T1> : OneOf
 
     public static OneOf<T0, T1> FromT0(T0 to) => new(to);
     public static OneOf<T0, T1> FromT1(T1 t1) => new(t1);
-    public static OneOf<T0, T1> FromObject(object obj) => new(obj);
 
     public static implicit operator OneOf<T0, T1>(T0 t0) => new(t0);
     public static implicit operator OneOf<T0, T1>(T1 t1) => new(t1);
