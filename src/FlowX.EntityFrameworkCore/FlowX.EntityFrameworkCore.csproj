@@ -4,6 +4,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <LangVersion>default</LangVersion>
         <PackageIcon>FlowX.png</PackageIcon>
+        <Authors>Quy Vu</Authors>
         <Version>2.0.0</Version>
         <PackageId>FlowX.EntityFrameworkCore</PackageId>
         <Description>FlowX.EntityFrameworkCore, a high performance and convenience package for database, interactive with database using EF Core</Description>
@@ -17,18 +18,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\FlowX\FlowX.csproj" />
+        <ProjectReference Include="..\FlowX\FlowX.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Include="..\..\FlowX.png">
-        <Pack>True</Pack>
-        <Link>FlowX.png</Link>
-      </None>
+        <None Include="..\..\FlowX.png">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+            <Link>FlowX.png</Link>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

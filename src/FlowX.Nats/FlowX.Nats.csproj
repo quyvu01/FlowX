@@ -27,6 +27,7 @@
     <ItemGroup>
         <None Include="..\..\FlowX.png">
             <Pack>True</Pack>
+            <PackagePath></PackagePath>
             <Link>FlowX.png</Link>
         </None>
     </ItemGroup>
