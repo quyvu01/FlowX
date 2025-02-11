@@ -40,34 +40,37 @@ public static class EfExtensions
 
     private static void AddEfRepositoriesAsScope<TDbContext>(IServiceCollection serviceCollection,
         Assembly modelAssembly, Func<Type, bool> modelsFilter)
-        where TDbContext : DbContext => modelAssembly.ExportedTypes
-        .Where(x => typeof(IEfModel).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false })
-        .Where(x => modelsFilter?.Invoke(x) ?? true)
-        .ForEach(modelType =>
-        {
-            var assemblyName = new AssemblyName
-                { Name = $"{typeof(TDbContext).Assembly.GetName().Name}.DynamicEfRepositoryType" };
-            var newAssembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-            var newModule = newAssembly.DefineDynamicModule("DynamicEfRepositoryModule");
-            var efRepositoryType = typeof(EfRepository<>).MakeGenericType(modelType);
-            var typeBuilder = newModule
-                .DefineType($"{modelType.Name}Repository", TypeAttributes.Public, efRepositoryType);
-            var ctorTypes = efRepositoryType.GetConstructor(
-                BindingFlags.Public | BindingFlags.Instance, [typeof(TDbContext)])!;
-            // Define the constructor for the dynamic class
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public,
-                CallingConventions.Standard, [typeof(TDbContext)]);
-            // Generate the constructor IL code
-            var ilGenerator = constructorBuilder.GetILGenerator();
-            ilGenerator.Emit(OpCodes.Ldarg_0); // Load "this" onto the stack
-            ilGenerator.Emit(OpCodes.Ldarg_1); // Load the TDbContext argument onto the stack
-            // Call the base constructor with the TDbContext and ILogger arguments
-            ilGenerator.Emit(OpCodes.Call, ctorTypes);
-            ilGenerator.Emit(OpCodes.Ret); // Return from the constructor
-            var repositoryType = typeBuilder.CreateType();
-            var implementationType = typeof(ISqlRepository<>).MakeGenericType(modelType);
-            serviceCollection.TryAddScoped(implementationType, repositoryType);
-        });
+        where TDbContext : DbContext
+    {
+        var assemblyName = new AssemblyName
+            { Name = $"{typeof(TDbContext).Assembly.GetName().Name}.DynamicEfRepositoryType" };
+        var newAssembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        var newModule = newAssembly.DefineDynamicModule("DynamicEfRepositoryModule");
+        modelAssembly.ExportedTypes
+            .Where(x => typeof(IEfModel).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false })
+            .Where(x => modelsFilter?.Invoke(x) ?? true)
+            .ForEach(modelType =>
+            {
+                var efRepositoryType = typeof(EfRepository<>).MakeGenericType(modelType);
+                var typeBuilder = newModule
+                    .DefineType($"{modelType.Name}Repository", TypeAttributes.Public, efRepositoryType);
+                var ctorTypes = efRepositoryType.GetConstructor(
+                    BindingFlags.Public | BindingFlags.Instance, [typeof(TDbContext)])!;
+                // Define the constructor for the dynamic class
+                var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public,
+                    CallingConventions.Standard, [typeof(TDbContext)]);
+                // Generate the constructor IL code
+                var ilGenerator = constructorBuilder.GetILGenerator();
+                ilGenerator.Emit(OpCodes.Ldarg_0); // Load "this" onto the stack
+                ilGenerator.Emit(OpCodes.Ldarg_1); // Load the TDbContext argument onto the stack
+                // Call the base constructor with the TDbContext and ILogger arguments
+                ilGenerator.Emit(OpCodes.Call, ctorTypes);
+                ilGenerator.Emit(OpCodes.Ret); // Return from the constructor
+                var repositoryType = typeBuilder.CreateType();
+                var implementationType = typeof(ISqlRepository<>).MakeGenericType(modelType);
+                serviceCollection.TryAddScoped(implementationType, repositoryType);
+            });
+    }
 
     private static void AddEfUnitOfWorkAsScope<TDbContext>(IServiceCollection serviceCollection)
         where TDbContext : DbContext
@@ -122,7 +125,6 @@ public static class EfExtensions
                 if (genericTypeDefinition == typeof(EfQueryCollectionHandler<,,>))
                 {
                     var arguments = basedType.GetGenericArguments();
-
                     var requestType = arguments[1];
                     var resultType = typeof(CollectionResponse<>).MakeGenericType(arguments[2]);
                     var serviceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType);
