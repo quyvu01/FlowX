@@ -12,9 +12,9 @@ public sealed class GetUsersHandler(ISqlRepository<User> sqlRepository)
     : EfQueryCollectionHandler<User, GetUsersQuery, UserResponse>(sqlRepository)
 {
     protected override IQueryListFlowBuilder<User, UserResponse> BuildQueryFlow(
-        IQueryListFilter<User, UserResponse> fromFlow, RequestContext<GetUsersQuery> queryContext)
+        IQueryListFilter<User, UserResponse> fromFlow, IRequestXContext<GetUsersQuery> queryXContext)
         => fromFlow
-            .WithFilter(a => queryContext.Request.Ids.Contains(a.Id))
+            .WithFilter(a => queryXContext.Request.Ids.Contains(a.Id))
             .WithSpecialAction(a => a.Select(x => new UserResponse { Id = x.Id, Email = x.Email, Name = x.Name }))
             .WithSortFieldWhenNotSet(a => a.Name)
             .WithSortedDirectionWhenNotSet(SortedDirection.Ascending);

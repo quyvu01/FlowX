@@ -12,10 +12,14 @@ Framework Core.
 - Customizable database interaction flows for greater flexibility.
 - Enhanced error handling for EF Core operations, ensuring reliability.
 - Intuitive fluent API for managing EF Core entities with ease.
-- Dynamic repository generation based on your models. Simply implement the IEfModel interface, and the rest is handled automatically!
-- Comprehensive support for CRUD operations, including methods like CreateOne, CreateMany, GetOne, GetCollection, GetPaged, and GetCount.
-- Build custom request flows by inheriting classes such as EfQueryOneHandler, EfQueryCollectionHandler, and EfCommandVoidHandler...
-- Effortless debugging and maintenance: With everything organized as a flow, you can easily trace issues, maintain your codebase, and scale up with confidence.
+- Dynamic repository generation based on your models. Simply implement the IEfModel interface, and the rest is handled
+  automatically!
+- Comprehensive support for CRUD operations, including methods like CreateOne, CreateMany, GetOne, GetCollection,
+  GetPaged, and GetCount.
+- Build custom request flows by inheriting classes such as EfQueryOneHandler, EfQueryCollectionHandler, and
+  EfCommandVoidHandler...
+- Effortless debugging and maintenance: With everything organized as a flow, you can easily trace issues, maintain your
+  codebase, and scale up with confidence.
 
 ## Getting Started
 
@@ -148,9 +152,13 @@ For inquiries, reach out to [your email or GitHub link].
 
 ---
 
-Extend your FlowX capabilities with FlowX.EntityFrameworkCore!
+Enjoy your moment!
 
-| Package Name                                                                           | Description                                                             | .NET Version | Document                                                                                     |
-|----------------------------------------------------------------------------------------|-------------------------------------------------------------------------|--------------|----------------------------------------------------------------------------------------------|
-| [FlowX](https://www.nuget.org/packages/FlowX/)                                         | FlowX core                                                              | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.EntityFrameworkCore/README.md) |
-| [FlowX.EntityFrameworkCore](https://www.nuget.org/packages/FlowX.EntityFrameworkCore/) | This is the FlowX extension package using EntityFramework to fetch data | 8.0, 9.0     | This Document                                                                                |
+| Package Name                                                                           | Description                                                                                         | .NET Version | Document                                                                                     |
+|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|--------------|----------------------------------------------------------------------------------------------|
+| [FlowX](https://www.nuget.org/packages/FlowX/)                                         | FlowX core                                                                                          | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.EntityFrameworkCore/README.md) |
+| **Data Provider**                                                                      |                                                                                                     |
+| [FlowX.EntityFrameworkCore](https://www.nuget.org/packages/FlowX.EntityFrameworkCore/) | This is the FlowX extension package using EntityFramework to fetch data                             | 8.0, 9.0     | This Document                                                                                |
+| **Transports**                                                                         |                                                                                                     |
+| [FlowX.Nats](https://www.nuget.org/packages/FlowX.Nats/)                               | FlowX.Nats is an extension package for FlowX that leverages Nats for efficient data transportation. | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.Nats/README.md)                |
+

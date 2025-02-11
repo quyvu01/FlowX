@@ -8,7 +8,7 @@ namespace FlowX.Tests.Pipelines;
 
 public sealed class GetUserPipeline : IFlowPipelineBehavior<GetUserQuery, OneOf<UserResponse, Error>>
 {
-    public async Task<OneOf<UserResponse, Error>> HandleAsync(RequestContext<GetUserQuery> requestContext,
+    public async Task<OneOf<UserResponse, Error>> HandleAsync(IRequestXContext<GetUserQuery> requestXContext,
         Func<Task<OneOf<UserResponse, Error>>> next)
     {
         Console.WriteLine("GetUserPipeline");

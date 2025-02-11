@@ -12,9 +12,9 @@ public sealed class CreateProvinceHandler(ISqlRepository<Province> sqlRepository
     : EfCommandOneVoidHandler<Province, CreateProvinceCommand>(sqlRepository, unitOfWork)
 {
     protected override ICommandOneFlowBuilderVoid<Province> BuildCommand(IStartOneCommandVoid<Province> fromFlow,
-        RequestContext<CreateProvinceCommand> commandContext)
+        IRequestXContext<CreateProvinceCommand> commandXContext)
         => fromFlow
-            .CreateOne(new Province { Id = Guid.NewGuid(), Name = commandContext.Request.Name })
+            .CreateOne(new Province { Id = Guid.NewGuid(), Name = commandXContext.Request.Name })
             .WithCondition(_ => None.Value)
             .WithErrorIfSaveChange(new Error { Code = "SomeError", Messages = ["Create user failed!"] });
 }

@@ -14,7 +14,7 @@ namespace FlowX.Implementations;
 internal sealed class TransportPipelineImpl<TRequest, TResult>(IServiceProvider serviceProvider)
     : IFlowPipelineBehavior<TRequest, TResult> where TRequest : IRequest<TResult>
 {
-    public async Task<TResult> HandleAsync(RequestContext<TRequest> requestContext, Func<Task<TResult>> next)
+    public async Task<TResult> HandleAsync(IRequestXContext<TRequest> requestXContext, Func<Task<TResult>> next)
     {
         var isRequestRegisteredInApp = FlowXCached.RequestMapResponse.Value
             .TryGetValue(typeof(TRequest), out _);
@@ -22,6 +22,6 @@ internal sealed class TransportPipelineImpl<TRequest, TResult>(IServiceProvider 
         // Check if transport is supported or not!
         var transportService = serviceProvider.GetService<ITransportService>();
         if (transportService is null) return await next.Invoke();
-        return await transportService.TransportDataAsync<TRequest, TResult>(requestContext);
+        return await transportService.TransportDataAsync<TRequest, TResult>(requestXContext);
     }
 }

@@ -27,7 +27,7 @@ internal class NatsServerRpc<TRequest, TResult>(IServiceProvider serviceProvider
             var request = JsonSerializer.Deserialize<TRequest>(data.MessageAsString);
             var headers = message.Headers?
                 .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
-            var requestContext = new FlowXContext<TRequest>(request, headers, CancellationToken.None);
+            var requestContext = new FlowXXContext<TRequest>(request, headers, CancellationToken.None);
             // Invoke the method and get the result
             var response = await pipeline.ExecuteAsync(requestContext);
             var replyAddress = message.ReplyTo!;

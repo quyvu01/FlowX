@@ -18,9 +18,9 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>(
 {
     protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
 
-    public virtual async Task<CollectionResponse<TResponse>> HandleAsync(RequestContext<TQuery> requestContext)
+    public virtual async Task<CollectionResponse<TResponse>> HandleAsync(IRequestXContext<TQuery> requestXContext)
     {
-        var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
+        var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestXContext);
         switch (buildResult.QuerySpecialActionType)
         {
             case QuerySpecialActionType.ToModel:
@@ -33,7 +33,7 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>(
                             .AsNoTracking()
                             .OrderByWithDynamic(null, buildResult.SortFieldNameWhenRequestEmpty,
                                 buildResult.SortedDirectionWhenRequestEmpty);
-                    }, requestContext.CancellationToken);
+                    }, requestXContext.CancellationToken);
                 var itemsResponse = items.Select(a => buildResult.MapFunc.Invoke(a)).ToList();
                 return new CollectionResponse<TResponse>(itemsResponse);
             }
@@ -45,7 +45,7 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>(
                     .OrderByWithDynamic(null, buildResult.SortFieldNameWhenRequestEmpty,
                         buildResult.SortedDirectionWhenRequestEmpty);
                 var response = await buildResult.SpecialActionToResponse.Invoke(queryable)
-                    .ToListAsync(requestContext.CancellationToken);
+                    .ToListAsync(requestXContext.CancellationToken);
                 return new CollectionResponse<TResponse>(response);
             case QuerySpecialActionType.UnKnown:
             default:
@@ -54,5 +54,5 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>(
     }
 
     protected abstract IQueryListFlowBuilder<TModel, TResponse> BuildQueryFlow(
-        IQueryListFilter<TModel, TResponse> fromFlow, RequestContext<TQuery> queryContext);
+        IQueryListFilter<TModel, TResponse> fromFlow, IRequestXContext<TQuery> queryXContext);
 }

@@ -2,5 +2,5 @@ namespace FlowX.Abstractions;
 
 public interface IFlowXSender
 {
-    Task<TResult> ExecuteAsync<TResult>(IRequest<TResult> requestContext, FlowContext context = null);
+    Task<TResult> Send<TResult>(IRequest<TResult> requestContext, Context context = null);
 }

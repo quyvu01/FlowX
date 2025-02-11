@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
-using System.Reflection;
-using FlowX.Abstractions;
 
 namespace FlowX.Cached;
 
@@ -10,9 +8,6 @@ public static class FlowXCached
     private static readonly Lazy<ConcurrentDictionary<Type, Func<object[], object>>> ConstructorCache = new(() => []);
 
     public static readonly Lazy<ConcurrentDictionary<Type, Type>> RequestMapResponse = new(() => []);
-
-    private static readonly Lazy<ConcurrentDictionary<Type, MethodInfo>> MethodInfoStorage =
-        new(() => new ConcurrentDictionary<Type, MethodInfo>());
 
     public static object CreateInstanceWithCache(Type type, params object[] args)
     {
@@ -32,10 +27,4 @@ public static class FlowXCached
 
         return factory(args);
     }
-
-    public static MethodInfo GetFlowXPipelineByRequest(object pipeline, Type requestType) =>
-        MethodInfoStorage.Value.GetOrAdd(requestType, q => pipeline.GetType().GetMethods()
-            .FirstOrDefault(m =>
-                m.Name == "ExecuteAsync" && m.GetParameters() is { Length: 1 } parameters &&
-                parameters[0].ParameterType == typeof(RequestContext<>).MakeGenericType(q)));
 }

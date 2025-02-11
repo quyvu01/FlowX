@@ -10,14 +10,14 @@ public sealed class UserController(IFlowXSender sender) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserCommand command)
     {
-        var result = await sender.ExecuteAsync(command);
+        var result = await sender.Send(command);
         return result.Match<IActionResult>(_ => Ok(), BadRequest);
     }
     
     [HttpGet]
     public async Task<IActionResult> GetUser([FromQuery] GetUserQuery query)
     {
-        var result = await sender.ExecuteAsync(query);
+        var result = await sender.Send(query);
         return result.Match<IActionResult>(Ok, BadRequest);
     }
 }
