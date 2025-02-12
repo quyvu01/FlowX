@@ -42,7 +42,7 @@ public sealed class FlowXEfFlowTest : ServicesBuilding
     [Fact]
     public async Task User_Should_Has_Result_With_Ef_Request()
     {
-        var sender = ServiceProvider.GetRequiredService<IFlowXSender>();
+        var sender = ServiceProvider.GetRequiredService<IFlow>();
         var userResult = await sender.Send(new GetUserQuery("1"));
         Assert.True(userResult.IsT0);
     }
@@ -51,7 +51,7 @@ public sealed class FlowXEfFlowTest : ServicesBuilding
     [InlineData("1", "2")]
     public async Task Users_Filtered_Should_Have_Data(params string[] ids)
     {
-        var sender = ServiceProvider.GetRequiredService<IFlowXSender>();
+        var sender = ServiceProvider.GetRequiredService<IFlow>();
         var userResult = await sender.Send(new GetUsersQuery([..ids]));
         Assert.Equal(ids.Length, userResult.Items.Count);
     }
@@ -59,7 +59,7 @@ public sealed class FlowXEfFlowTest : ServicesBuilding
     [Fact]
     public async Task User_Should_Be_Created()
     {
-        var sender = ServiceProvider.GetRequiredService<IFlowXSender>();
+        var sender = ServiceProvider.GetRequiredService<IFlow>();
         var userCreatedCommand = new CreateUserCommand("4", "Abc", "ac@gm.co");
         var userResult = await sender.Send(new CreateUserCommand("4", "Abc", "ac@gm.co"));
         Assert.True(userResult.IsT0);

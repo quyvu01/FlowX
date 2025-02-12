@@ -5,7 +5,7 @@ using Service2.Contracts.Requests;
 namespace Service2.Controllers;
 
 [Route("api/[controller]/[action]")]
-public sealed class ProvinceController(IFlowXSender sender) : ControllerBase
+public sealed class ProvinceController(IFlow sender) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> CreateProvince([FromBody] CreateProvinceCommand command)

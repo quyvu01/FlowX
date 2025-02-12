@@ -5,7 +5,7 @@ using Service2.Contracts.Requests;
 namespace Service1.Controllers;
 
 [Route("api/[controller]/[action]")]
-public sealed class ExternalController(IFlowXSender sender) : ControllerBase
+public sealed class ExternalController(IFlow sender) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetProvince([FromQuery] GetProvinceQuery query)

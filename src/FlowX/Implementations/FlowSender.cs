@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace FlowX.Implementations;
 
-public sealed class FlowXSender(IServiceProvider serviceProvider) : IFlowXSender
+internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
 {
     private static readonly Lazy<ConcurrentDictionary<(Type RequestType, Type ResultType), Type>> flowPipelineStorage =
         new(() => []);

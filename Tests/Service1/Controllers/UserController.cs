@@ -5,7 +5,7 @@ using Service1.Contracts.Requests;
 namespace Service1.Controllers;
 
 [Route("api/[controller]/[action]")]
-public sealed class UserController(IFlowXSender sender) : ControllerBase
+public sealed class UserController(IFlow sender) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserCommand command)

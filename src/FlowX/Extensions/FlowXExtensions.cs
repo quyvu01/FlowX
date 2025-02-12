@@ -15,7 +15,7 @@ public static class FlowXExtensions
         var newFlowXRegister = new FlowXRegister(serviceCollection);
         options.Invoke(newFlowXRegister);
         serviceCollection.AddTransient(typeof(FlowPipelinesImpl<,>));
-        serviceCollection.AddTransient<IFlowXSender, FlowXSender>();
+        serviceCollection.AddTransient<IFlow, FlowSender>();
         serviceCollection.AddTransient(typeof(IFlowPipelineBehavior<,>), typeof(TransportPipelineImpl<,>));
         serviceCollection.TryAddTransient(typeof(IRequestHandler<,>), typeof(DefaultRequestHandler<,>));
         return new FlowXRegisterWrapped(newFlowXRegister);
