@@ -40,13 +40,8 @@ public readonly struct OneOf<T0, T1> : OneOf, IMessageSerialized
         t1Action.Invoke(_t1);
     }
 
-    public Task SwitchAsync(Func<T0, Task> t0Func, Func<T1, Task> t1Func)
-    {
-        if (IsT0) return t0Func.Invoke(_t0);
-
-        t1Func.Invoke(_t1);
-        return Task.CompletedTask;
-    }
+    public Task SwitchAsync(Func<T0, Task> t0Func, Func<T1, Task> t1Func) =>
+        IsT0 ? t0Func.Invoke(_t0) : t1Func.Invoke(_t1);
 
     public TResult Match<TResult>(Func<T0, TResult> t0Func, Func<T1, TResult> t1Resul) =>
         IsT0 ? t0Func.Invoke(_t0) : t1Resul.Invoke(_t1);
@@ -66,6 +61,7 @@ public readonly struct OneOf<T0, T1> : OneOf, IMessageSerialized
         IsT1 = true;
     }
 
+    // Do not remove it as we call it dynamically!
     public OneOf(object obj)
     {
         switch (obj)
