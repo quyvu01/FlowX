@@ -2,11 +2,11 @@ using FlowX.Abstractions;
 
 namespace FlowX.Implementations;
 
-public sealed class FlowXXContext<TRequest>(
+public sealed class FlowContext<TRequest>(
     TRequest request,
     Dictionary<string, string> headers,
     CancellationToken cancellationToken)
-    : IRequestXContext<TRequest>
+    : RequestContext<TRequest>
 {
     public Dictionary<string, string> Headers { get; } = headers;
     public CancellationToken CancellationToken { get; } = cancellationToken;

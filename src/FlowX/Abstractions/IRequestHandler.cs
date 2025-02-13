@@ -4,5 +4,5 @@ public interface IRequestHandlerBase;
 
 public interface IRequestHandler<in TRequest, TResult> : IRequestHandlerBase where TRequest : IRequest<TResult>
 {
-    Task<TResult> HandleAsync(IRequestXContext<TRequest> requestXContext);
+    Task<TResult> HandleAsync(RequestContext<TRequest> requestContext);
 }

@@ -12,7 +12,7 @@ public sealed class GetProvincesHandler(ISqlRepository<Province> sqlRepository)
     : EfQueryPaginationHandler<Province, GetProvincesQuery, ProvinceResponse>(sqlRepository)
 {
     protected override IQueryListFlowBuilder<Province, ProvinceResponse> BuildQueryFlow(
-        IQueryListFilter<Province, ProvinceResponse> fromFlow, IRequestXContext<GetProvincesQuery> queryXContext)
+        IQueryListFilter<Province, ProvinceResponse> fromFlow, RequestContext<GetProvincesQuery> queryContext)
         => fromFlow
             .WithFilter(null)
             .WithSpecialAction(a => a.Select(x => new ProvinceResponse { Id = x.Id, Name = x.Name }))

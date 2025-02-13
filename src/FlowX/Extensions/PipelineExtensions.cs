@@ -5,9 +5,9 @@ namespace FlowX.Extensions;
 
 public static class PipelineExtensions
 {
-    public static void AddSqlPipelines(this FlowXRegister flowXRegister, Action<SqlPipeline> options)
+    public static void AddPipelines(this FlowXRegister flowXRegister, Action<FlowPipeline> options)
     {
-        var receivedPipeline = new SqlPipeline(flowXRegister.ServiceCollection);
+        var receivedPipeline = new FlowPipeline(flowXRegister.ServiceCollection);
         options.Invoke(receivedPipeline);
     }
 }

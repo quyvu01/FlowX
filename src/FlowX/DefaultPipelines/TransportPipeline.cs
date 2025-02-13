@@ -2,7 +2,7 @@ using FlowX.Abstractions;
 using FlowX.Cached;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FlowX.Implementations;
+namespace FlowX.DefaultPipelines;
 
 /// <summary>
 /// The `TransportPipelineImpl` is the default pipeline of FlowX, which automatically handles requests across services.
@@ -11,12 +11,12 @@ namespace FlowX.Implementations;
 /// </summary>
 /// <typeparam name="TRequest"></typeparam>
 /// <typeparam name="TResult"></typeparam>
-internal sealed class TransportPipelineImpl<TRequest, TResult>(IServiceProvider serviceProvider)
+internal sealed class TransportPipeline<TRequest, TResult>(IServiceProvider serviceProvider)
     : IFlowPipelineBehavior<TRequest, TResult> where TRequest : IRequest<TResult>
 {
-    public async Task<TResult> HandleAsync(IRequestXContext<TRequest> requestXContext, Func<Task<TResult>> next)
+    public async Task<TResult> HandleAsync(RequestContext<TRequest> requestXContext, Func<Task<TResult>> next)
     {
-        var isRequestRegisteredInApp = FlowXCached.RequestMapResponse.Value
+        var isRequestRegisteredInApp = FlowXCached.RequestMapResponse
             .TryGetValue(typeof(TRequest), out _);
         if (isRequestRegisteredInApp) return await next.Invoke();
         // Check if transport is supported or not!

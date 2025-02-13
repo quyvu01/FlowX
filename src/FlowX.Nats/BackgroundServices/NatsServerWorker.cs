@@ -9,7 +9,7 @@ internal sealed class NatsServerWorker(IServiceProvider serviceProvider) : Backg
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var requestMapResponseTypes = FlowXCached.RequestMapResponse.Value;
+        var requestMapResponseTypes = FlowXCached.RequestMapResponse;
         var tasks = requestMapResponseTypes.Select(async requestMapResponseType =>
         {
             var (requestType, responseType) = requestMapResponseType;

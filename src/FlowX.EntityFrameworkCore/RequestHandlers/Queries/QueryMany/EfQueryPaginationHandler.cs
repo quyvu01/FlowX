@@ -19,11 +19,11 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>(
     protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
 
     protected abstract IQueryListFlowBuilder<TModel, TResponse> BuildQueryFlow(
-        IQueryListFilter<TModel, TResponse> fromFlow, IRequestXContext<TQuery> queryXContext);
+        IQueryListFilter<TModel, TResponse> fromFlow, RequestContext<TQuery> queryContext);
 
-    public virtual async Task<PaginationResponse<TResponse>> HandleAsync(IRequestXContext<TQuery> requestXContext)
+    public virtual async Task<PaginationResponse<TResponse>> HandleAsync(RequestContext<TQuery> requestContext)
     {
-        var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestXContext);
+        var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
         switch (buildResult.QuerySpecialActionType)
         {
             case QuerySpecialActionType.ToModel:
@@ -32,15 +32,15 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>(
                     .GetQueryable(buildResult.Filter)
                     .AsNoTracking();
                 var toModelQueryable = toModelSrcQueryable
-                    .OrderByWithDynamic(requestXContext.Request.SortedFieldName,
+                    .OrderByWithDynamic(requestContext.Request.SortedFieldName,
                         buildResult.SortFieldNameWhenRequestEmpty,
-                        requestXContext.Request.SortedDirection ?? buildResult.SortedDirectionWhenRequestEmpty);
+                        requestContext.Request.SortedDirection ?? buildResult.SortedDirectionWhenRequestEmpty);
                 var toModelFinalQueryable = buildResult.SpecialActionToModel.Invoke(toModelQueryable);
                 var toModelResponse = await toModelFinalQueryable
-                    .Offset(requestXContext.Request.Skip)
-                    .Limit(requestXContext.Request.Take)
-                    .ToListAsync(requestXContext.CancellationToken);
-                var toModelTotalRecord = await toModelFinalQueryable.LongCountAsync(requestXContext.CancellationToken);
+                    .Offset(requestContext.Request.Skip)
+                    .Limit(requestContext.Request.Take)
+                    .ToListAsync(requestContext.CancellationToken);
+                var toModelTotalRecord = await toModelFinalQueryable.LongCountAsync(requestContext.CancellationToken);
                 var itemsResponses = toModelResponse.Select(a => buildResult.MapFunc.Invoke(a)).ToList();
                 return new PaginationResponse<TResponse>(itemsResponses, toModelTotalRecord);
             }
@@ -50,15 +50,15 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>(
                     .AsNoTracking();
 
                 var queryable = srcQueryable
-                    .OrderByWithDynamic(requestXContext.Request.SortedFieldName,
+                    .OrderByWithDynamic(requestContext.Request.SortedFieldName,
                         buildResult.SortFieldNameWhenRequestEmpty,
-                        requestXContext.Request.SortedDirection ?? buildResult.SortedDirectionWhenRequestEmpty);
+                        requestContext.Request.SortedDirection ?? buildResult.SortedDirectionWhenRequestEmpty);
                 var finalQueryable = buildResult.SpecialActionToResponse.Invoke(queryable);
                 var response = await finalQueryable
-                    .Offset(requestXContext.Request.Skip)
-                    .Limit(requestXContext.Request.Take)
-                    .ToListAsync(requestXContext.CancellationToken);
-                var totalRecord = await finalQueryable.LongCountAsync(requestXContext.CancellationToken);
+                    .Offset(requestContext.Request.Skip)
+                    .Limit(requestContext.Request.Take)
+                    .ToListAsync(requestContext.CancellationToken);
+                var totalRecord = await finalQueryable.LongCountAsync(requestContext.CancellationToken);
                 return new PaginationResponse<TResponse>(response, totalRecord);
             case QuerySpecialActionType.UnKnown:
             default:

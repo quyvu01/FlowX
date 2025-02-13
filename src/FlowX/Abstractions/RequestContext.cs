@@ -1,6 +1,6 @@
 namespace FlowX.Abstractions;
 
-public interface IRequestXContext<out TRequest> : Context
+public interface RequestContext<out TRequest> : Context
 {
     TRequest Request { get; }
 }

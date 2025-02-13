@@ -29,7 +29,7 @@ public sealed class FlowXEfFlowTest : ServicesBuilding
                         options.AddDynamicRepositories();
                         options.AddDynamicUnitOfWork();
                     });
-                    cfg.AddSqlPipelines(c => c.OfType<GetUserPipeline>(ServiceLifetime.Transient));
+                    cfg.AddPipelines(c => c.OfType<GetUserPipeline>(ServiceLifetime.Transient));
                     cfg.AddNats(config => config.Url("nats://localhost:4222"));
                 });
             })

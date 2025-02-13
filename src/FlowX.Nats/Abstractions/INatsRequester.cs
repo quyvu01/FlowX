@@ -4,5 +4,5 @@ namespace FlowX.Nats.Abstractions;
 
 internal interface INatsRequester<in TRequest, TResult> where TRequest : IRequest<TResult>
 {
-    Task<TResult> RequestAsync(IRequestXContext<TRequest> requestXContext);
+    Task<TResult> RequestAsync(RequestContext<TRequest> requestContext);
 }

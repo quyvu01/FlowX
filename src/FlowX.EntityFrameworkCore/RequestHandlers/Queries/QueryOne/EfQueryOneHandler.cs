@@ -19,11 +19,11 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>(
     protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
 
     protected abstract IQueryOneFlowBuilder<TModel, TResponse> BuildQueryFlow(
-        IQueryOneFilter<TModel, TResponse> fromFlow, IRequestXContext<TQuery> queryXContext);
+        IQueryOneFilter<TModel, TResponse> fromFlow, RequestContext<TQuery> queryContext);
 
-    public virtual async Task<OneOf<TResponse, Error>> HandleAsync(IRequestXContext<TQuery> requestXContext)
+    public virtual async Task<OneOf<TResponse, Error>> HandleAsync(RequestContext<TQuery> requestContext)
     {
-        var buildResult = BuildQueryFlow(new QueryOneFlow<TModel, TResponse>(), requestXContext);
+        var buildResult = BuildQueryFlow(new QueryOneFlow<TModel, TResponse>(), requestContext);
         switch (buildResult.QuerySpecialActionType)
         {
             case QuerySpecialActionType.UnKnown:
@@ -32,7 +32,7 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>(
             {
                 var item = await SqlRepository.GetFirstByConditionAsync(buildResult.Filter,
                     db => buildResult.SpecialAction?
-                        .Invoke(db.AsNoTracking()) ?? db.AsNoTracking(), requestXContext.CancellationToken);
+                        .Invoke(db.AsNoTracking()) ?? db.AsNoTracking(), requestContext.CancellationToken);
                 if (item is null) return buildResult.Error;
                 return buildResult.MapFunc.Invoke(item);
             }
@@ -42,7 +42,7 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>(
                 var collection = SqlRepository.GetQueryable(buildResult.Filter)
                     .AsNoTracking();
                 return await buildResult.SpecialActionToResponse.Invoke(collection)
-                    .FirstOrDefaultAsync(requestXContext.CancellationToken);
+                    .FirstOrDefaultAsync(requestContext.CancellationToken);
             }
         }
     }

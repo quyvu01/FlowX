@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using FlowX.Abstractions;
 using FlowX.Cached;
+using FlowX.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FlowX.Implementations;
@@ -23,15 +24,15 @@ internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
         var serviceType = flowPipelineStorage.Value.GetOrAdd((requestType, typeof(TResult)),
             (rq) => typeof(FlowPipelinesImpl<,>).MakeGenericType(rq.RequestType, rq.ResultType));
 
-        var pipeline = serviceProvider.GetRequiredService(serviceType);
-        var method = methodInfoStorage.Value.GetOrAdd(requestType, rq => pipeline.GetType()
-            .GetMethod(executeAsyncName, [typeof(IRequestXContext<>).MakeGenericType(rq)]));
-        if (method is null) throw new UnreachableException();
+        var pipelineService = serviceProvider.GetRequiredService(serviceType);
+        var methodInfo = methodInfoStorage.Value.GetOrAdd(requestType, rq => pipelineService.GetType()
+            .GetMethod(executeAsyncName, [typeof(RequestContext<>).MakeGenericType(rq)]));
+        if (methodInfo is null) throw new UnreachableException();
         var headers = context?.Headers ?? [];
         var cancellationToken = context?.CancellationToken ?? CancellationToken.None;
-        var requestContextType = typeof(FlowXXContext<>).MakeGenericType(requestType);
+        var requestContextType = typeof(FlowContext<>).MakeGenericType(requestType);
         var requestContext =
             FlowXCached.CreateInstanceWithCache(requestContextType, request, headers, cancellationToken);
-        return await ((Task<TResult>)method.Invoke(pipeline, [requestContext]))!;
+        return await ((Task<TResult>)methodInfo.Invoke(pipelineService, [requestContext]))!;
     }
 }

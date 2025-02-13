@@ -11,13 +11,13 @@ public abstract class EfQueryCountingHandler<TModel, TQuery>(ISqlRepository<TMod
     where TQuery : class, IQueryCounting
 {
     protected abstract ICountingFlowBuilder<TModel> BuildQueryFlow(
-        ICountingFilter<TModel> fromFlow, IRequestXContext<TQuery> queryXContext);
+        ICountingFilter<TModel> fromFlow, RequestContext<TQuery> queryContext);
 
-    public virtual async Task<CountingResponse> HandleAsync(IRequestXContext<TQuery> requestXContext)
+    public virtual async Task<CountingResponse> HandleAsync(RequestContext<TQuery> requestContext)
     {
-        var flowBuilder = BuildQueryFlow(new CountingFlow<TModel>(), requestXContext);
+        var flowBuilder = BuildQueryFlow(new CountingFlow<TModel>(), requestContext);
         var count = await sqlRepository
-            .CountByConditionAsync(flowBuilder.Filter, null, requestXContext.CancellationToken);
+            .CountByConditionAsync(flowBuilder.Filter, null, requestContext.CancellationToken);
         return new CountingResponse { Count = count };
     }
 }

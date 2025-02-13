@@ -19,11 +19,11 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>(
     protected IUnitOfWork UnitOfWork { get; } = unitOfWork;
 
     protected abstract ICommandOneFlowBuilderVoid<TModel> BuildCommand(
-        IStartOneCommandVoid<TModel> fromFlow, IRequestXContext<TCommand> commandXContext);
+        IStartOneCommandVoid<TModel> fromFlow, RequestContext<TCommand> commandContext);
 
-    public virtual async Task<OneOf<None, Error>> HandleAsync(IRequestXContext<TCommand> requestXContext)
+    public virtual async Task<OneOf<None, Error>> HandleAsync(RequestContext<TCommand> requestContext)
     {
-        var buildResult = BuildCommand(new CommandOneVoidFlow<TModel>(), requestXContext);
+        var buildResult = BuildCommand(new CommandOneVoidFlow<TModel>(), requestContext);
         var commandType = buildResult.CommandTypeOne;
         switch (commandType)
         {
@@ -31,12 +31,12 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>(
                 var createItem = await buildResult.ModelCreateFunc.Invoke();
                 var createManyCondition = await buildResult.CommandOneCondition.Invoke(createItem);
                 if (createManyCondition.IsT1) return createManyCondition.AsT1;
-                await SqlRepository.CreateOneAsync(createItem, token: requestXContext.CancellationToken);
+                await SqlRepository.CreateOneAsync(createItem, token: requestContext.CancellationToken);
                 break;
             case CommandTypeOne.Update:
                 var updateItem = await SqlRepository
                     .GetFirstByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
-                        token: requestXContext.CancellationToken);
+                        token: requestContext.CancellationToken);
                 if (updateItem is null) return buildResult.NullError;
                 var updateOneCondition = await buildResult.CommandOneCondition.Invoke(updateItem);
                 if (updateOneCondition.IsT1) return updateOneCondition.AsT1;
@@ -44,18 +44,18 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>(
                 break;
             case CommandTypeOne.Remove:
                 var removeItem = await SqlRepository.GetFirstByConditionAsync(buildResult.CommandFilter,
-                    buildResult.CommandSpecialAction, token: requestXContext.CancellationToken);
+                    buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
                 if (removeItem is null) return buildResult.NullError;
                 var removeOneCondition = await buildResult.CommandOneCondition.Invoke(removeItem);
                 if (removeOneCondition.IsT1) return removeOneCondition.AsT1;
-                await SqlRepository.RemoveOneAsync(removeItem, requestXContext.CancellationToken);
+                await SqlRepository.RemoveOneAsync(removeItem, requestContext.CancellationToken);
                 break;
             case CommandTypeOne.Unknown:
             default:
                 throw new UnreachableException($"Command {commandType} does not support!");
         }
 
-        var saveResult = await UnitOfWork.SaveChangesAsync(requestXContext.CancellationToken);
+        var saveResult = await UnitOfWork.SaveChangesAsync(requestContext.CancellationToken);
         if (saveResult.IsT1)
             return buildResult.SaveChangesError;
         return None.Value;

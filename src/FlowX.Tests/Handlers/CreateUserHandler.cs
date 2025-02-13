@@ -12,11 +12,11 @@ public sealed class CreateUserHandler(ISqlRepository<User> sqlRepository, IUnitO
     : EfCommandOneVoidHandler<User, CreateUserCommand>(sqlRepository, unitOfWork)
 {
     protected override ICommandOneFlowBuilderVoid<User> BuildCommand(IStartOneCommandVoid<User> fromFlow,
-        IRequestXContext<CreateUserCommand> commandXContext)
+        RequestContext<CreateUserCommand> commandContext)
         => fromFlow
             .CreateOne(new User
             {
-                Id = commandXContext.Request.Id, Name = commandXContext.Request.Name, Email = commandXContext.Request.Email
+                Id = commandContext.Request.Id, Name = commandContext.Request.Name, Email = commandContext.Request.Email
             })
             .WithCondition(_ => None.Value)
             .WithErrorIfSaveChange(new Error { Code = "123", Messages = ["Create Failed!"] });

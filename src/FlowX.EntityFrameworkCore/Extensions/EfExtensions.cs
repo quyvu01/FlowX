@@ -1,21 +1,12 @@
 using System.Reflection;
 using System.Reflection.Emit;
 using FlowX.Abstractions;
-using FlowX.Cached;
 using FlowX.EntityFrameworkCore.Abstractions;
-using FlowX.EntityFrameworkCore.Exceptions;
 using FlowX.EntityFrameworkCore.Registries;
 using FlowX.EntityFrameworkCore.Repositories;
-using FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandMany;
-using FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandOne;
-using FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryCounting;
-using FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryMany;
-using FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryOne;
-using FlowX.Errors;
 using FlowX.Extensions;
 using FlowX.Registries;
-using FlowX.Responses;
-using FlowX.Structs;
+using FlowX.Statics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -31,10 +22,10 @@ public static class EfExtensions
         options.Invoke(flowXEfCoreRegister);
         if (flowXEfCoreRegister.IsDynamicRepositories)
             AddEfRepositoriesAsScope<TDbContext>(flowXRegister.ServiceCollection,
-                flowXRegister.ModelsFromNamespaceContaining, flowXRegister.ModelsFilter);
+                FlowXStatics.ModelsFromNamespaceContaining, FlowXStatics.ModelsFilter);
         if (flowXEfCoreRegister.IsDynamicUnitOfWork)
             AddEfUnitOfWorkAsScope<TDbContext>(flowXRegister.ServiceCollection);
-        AddEfRequestHandlersAsScope(flowXRegister.ServiceCollection, flowXRegister.HandlersFromNamespaceContaining);
+        // AddEfRequestHandlersAsScope(flowXRegister.ServiceCollection);
         return flowXRegister;
     }
 
@@ -95,100 +86,5 @@ public static class EfExtensions
         ilGenerator.Emit(OpCodes.Ret); // Return from the constructor
         var unitOfWorkType = typeBuilder.CreateType();
         serviceCollection.TryAddScoped(typeof(IUnitOfWork), unitOfWorkType);
-    }
-
-    private static void AddEfRequestHandlersAsScope(IServiceCollection serviceCollection,
-        Assembly handlersAssembly)
-    {
-        handlersAssembly.ExportedTypes
-            .Where(x => typeof(IRequestHandlerBase).IsAssignableFrom(x) &&
-                        x is { IsInterface: false, IsAbstract: false })
-            .ForEach(handlerType =>
-            {
-                var basedType = handlerType.BaseType;
-                if (basedType is null) return;
-                if (!basedType.IsGenericType) return;
-                var genericTypeDefinition = basedType.GetGenericTypeDefinition();
-                if (genericTypeDefinition == typeof(EfQueryOneHandler<,,>))
-                {
-                    var arguments = basedType.GetGenericArguments();
-                    var requestType = arguments[1];
-                    var resultType = typeof(OneOf<,>).MakeGenericType(arguments[2], typeof(Error));
-                    var serviceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType);
-                    if (serviceCollection.Any(a => a.ServiceType == serviceType))
-                        throw new FlowXEntityFrameworkException.RequestHasBeenRegistered(arguments[1]);
-                    FlowXCached.RequestMapResponse.Value.TryAdd(requestType, resultType);
-                    serviceCollection.TryAddScoped(serviceType, handlerType);
-                    return;
-                }
-
-                if (genericTypeDefinition == typeof(EfQueryCollectionHandler<,,>))
-                {
-                    var arguments = basedType.GetGenericArguments();
-                    var requestType = arguments[1];
-                    var resultType = typeof(CollectionResponse<>).MakeGenericType(arguments[2]);
-                    var serviceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType);
-                    if (serviceCollection.Any(a => a.ServiceType == serviceType))
-                        throw new FlowXEntityFrameworkException.RequestHasBeenRegistered(arguments[1]);
-                    FlowXCached.RequestMapResponse.Value.TryAdd(requestType, resultType);
-                    serviceCollection.TryAddScoped(serviceType, handlerType);
-                    return;
-                }
-
-                if (genericTypeDefinition == typeof(EfQueryPaginationHandler<,,>))
-                {
-                    var arguments = basedType.GetGenericArguments();
-                    var requestType = arguments[1];
-                    var resultType = typeof(PaginationResponse<>).MakeGenericType(arguments[2]);
-                    var serviceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType);
-                    if (serviceCollection.Any(a => a.ServiceType == serviceType))
-                        throw new FlowXEntityFrameworkException.RequestHasBeenRegistered(arguments[1]);
-                    FlowXCached.RequestMapResponse.Value.TryAdd(requestType, resultType);
-                    serviceCollection.TryAddScoped(serviceType, handlerType);
-                    return;
-                }
-
-                if (genericTypeDefinition == typeof(EfQueryCountingHandler<,>))
-                {
-                    var arguments = basedType.GetGenericArguments();
-
-                    var requestType = arguments[1];
-                    var resultType = typeof(CountingResponse);
-                    var serviceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType);
-                    if (serviceCollection.Any(a => a.ServiceType == serviceType))
-                        throw new FlowXEntityFrameworkException.RequestHasBeenRegistered(arguments[1]);
-                    FlowXCached.RequestMapResponse.Value.TryAdd(requestType, resultType);
-                    serviceCollection.TryAddScoped(serviceType, handlerType);
-                    return;
-                }
-
-                if (genericTypeDefinition == typeof(EfCommandOneVoidHandler<,>) ||
-                    genericTypeDefinition == typeof(EfCommandManyVoidHandler<,>))
-                {
-                    var arguments = basedType.GetGenericArguments();
-                    var requestType = arguments[1];
-                    var resultType = typeof(OneOf<,>).MakeGenericType(typeof(None), typeof(Error));
-                    var serviceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType);
-                    if (serviceCollection.Any(a => a.ServiceType == serviceType))
-                        throw new FlowXEntityFrameworkException.RequestHasBeenRegistered(arguments[1]);
-                    FlowXCached.RequestMapResponse.Value.TryAdd(requestType, resultType);
-                    serviceCollection.TryAddScoped(serviceType, handlerType);
-                    return;
-                }
-
-                if (genericTypeDefinition == typeof(EfCommandOneResultHandler<,,>) ||
-                    genericTypeDefinition == typeof(EfCommandManyResultHandler<,,>))
-                {
-                    var arguments = basedType.GetGenericArguments();
-
-                    var requestType = arguments[1];
-                    var resultType = typeof(OneOf<,>).MakeGenericType(arguments[2], typeof(Error));
-                    var serviceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType);
-                    if (serviceCollection.Any(a => a.ServiceType == serviceType))
-                        throw new FlowXEntityFrameworkException.RequestHasBeenRegistered(arguments[1]);
-                    FlowXCached.RequestMapResponse.Value.TryAdd(requestType, resultType);
-                    serviceCollection.TryAddScoped(serviceType, handlerType);
-                }
-            });
     }
 }

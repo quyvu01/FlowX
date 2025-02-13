@@ -12,9 +12,9 @@ public sealed class GetUserHandler(ISqlRepository<User> sqlRepository)
     : EfQueryOneHandler<User, GetUserQuery, UserResponse>(sqlRepository)
 {
     protected override IQueryOneFlowBuilder<User, UserResponse> BuildQueryFlow(
-        IQueryOneFilter<User, UserResponse> fromFlow, IRequestXContext<GetUserQuery> queryXContext)
+        IQueryOneFilter<User, UserResponse> fromFlow, RequestContext<GetUserQuery> queryContext)
         => fromFlow
-            .WithFilter(a => a.Id == queryXContext.Request.Id)
+            .WithFilter(a => a.Id == queryContext.Request.Id)
             .WithSpecialAction(a => a)
             .WithMap(u => new UserResponse { Id = u.Id, Email = u.Email, Name = u.Name })
             .WithErrorIfNull(new Error());

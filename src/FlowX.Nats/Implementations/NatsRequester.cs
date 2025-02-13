@@ -16,15 +16,15 @@ internal sealed class NatsRequester<TRequest, TResult>(NatsClientWrapper client)
 {
     private static readonly Func<object, TResult> _oneOfFactory = CreateOneOfFactory();
 
-    public async Task<TResult> RequestAsync(IRequestXContext<TRequest> requestXContext)
+    public async Task<TResult> RequestAsync(RequestContext<TRequest> requestContext)
     {
         var natsHeaders = new NatsHeaders();
-        requestXContext.Headers?.ForEach(h => natsHeaders.Add(h.Key, h.Value));
+        requestContext.Headers?.ForEach(h => natsHeaders.Add(h.Key, h.Value));
         var natsMessageWrapped = new NatsMessageWrapper
-            { MessageAsString = JsonSerializer.Serialize(requestXContext.Request) };
+            { MessageAsString = JsonSerializer.Serialize(requestContext.Request) };
         var reply = await client.NatsClient
             .RequestAsync<NatsMessageWrapper, MessageSerialized>(typeof(TRequest).GetNatsSubject(),
-                natsMessageWrapped, natsHeaders, cancellationToken: requestXContext.CancellationToken);
+                natsMessageWrapped, natsHeaders, cancellationToken: requestContext.CancellationToken);
         if (reply.Data is not { } data)
             throw new ArgumentNullException(nameof(reply.Data));
         var response = JsonSerializer.Deserialize(data.ObjectSerialized, Type.GetType(data.Type)!);

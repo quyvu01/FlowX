@@ -4,18 +4,18 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace FlowX.ApplicationModels;
 
-public sealed class SqlPipeline(IServiceCollection serviceCollection)
+public sealed class FlowPipeline(IServiceCollection serviceCollection)
 {
     private static readonly Type interfaceReceivedPipeline = typeof(IFlowPipelineBehavior<,>);
 
-    public SqlPipeline OfType<TReceivedPipeline>(ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
+    public FlowPipeline OfType<TReceivedPipeline>(ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
     {
         OfType(typeof(TReceivedPipeline), serviceLifetime);
         return this;
     }
 
     // Hmmm, this one is temporary!. I think should test more case!
-    public SqlPipeline OfType(Type pipelineType, ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
+    public FlowPipeline OfType(Type pipelineType, ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
     {
         var signatureInterfaceTypes = pipelineType.GetInterfaces()
             .Where(a => a.IsGenericType && a.GetGenericTypeDefinition() == interfaceReceivedPipeline)
@@ -26,17 +26,13 @@ public sealed class SqlPipeline(IServiceCollection serviceCollection)
         {
             if (pipelineType.ContainsGenericParameters)
             {
-                var serviceDescriptor = new ServiceDescriptor(interfaceReceivedPipeline, pipelineType, serviceLifetime);
-                serviceCollection.Add(serviceDescriptor);
+                serviceCollection.Add(new ServiceDescriptor(interfaceReceivedPipeline, pipelineType, serviceLifetime));
                 return this;
             }
         }
 
         signatureInterfaceTypes.ForEach(s =>
-        {
-            var serviceDescriptor = new ServiceDescriptor(s, pipelineType, serviceLifetime);
-            serviceCollection.Add(serviceDescriptor);
-        });
+            serviceCollection.Add(new ServiceDescriptor(s, pipelineType, serviceLifetime)));
 
         return this;
     }

@@ -6,8 +6,8 @@ namespace FlowX.Cached;
 public static class FlowXCached
 {
     private static readonly Lazy<ConcurrentDictionary<Type, Func<object[], object>>> ConstructorCache = new(() => []);
-
-    public static readonly Lazy<ConcurrentDictionary<Type, Type>> RequestMapResponse = new(() => []);
+    public static IReadOnlyDictionary<Type, Type> RequestMapResponse => InternalRequestMapResponse.Value;
+    internal static readonly Lazy<Dictionary<Type, Type>> InternalRequestMapResponse = new(() => []);
 
     public static object CreateInstanceWithCache(Type type, params object[] args) =>
         ConstructorCache.Value.GetOrAdd(type, t =>

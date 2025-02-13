@@ -12,9 +12,9 @@ public sealed class GetProvinceHandler(ISqlRepository<Province> sqlRepository)
     : EfQueryOneHandler<Province, GetProvinceQuery, ProvinceResponse>(sqlRepository)
 {
     protected override IQueryOneFlowBuilder<Province, ProvinceResponse> BuildQueryFlow(
-        IQueryOneFilter<Province, ProvinceResponse> fromFlow, IRequestXContext<GetProvinceQuery> queryXContext)
+        IQueryOneFilter<Province, ProvinceResponse> fromFlow, RequestContext<GetProvinceQuery> queryContext)
         => fromFlow
-            .WithFilter(a => a.Id == queryXContext.Request.Id)
+            .WithFilter(a => a.Id == queryContext.Request.Id)
             .WithSpecialAction(a => a.Select(u => new ProvinceResponse { Id = u.Id, Name = u.Name }))
             .WithErrorIfNull(new Error { Code = "NotFound", Messages = ["User was not found!"] });
 }

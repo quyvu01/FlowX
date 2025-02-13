@@ -18,11 +18,11 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>(
     protected IUnitOfWork UnitOfWork { get; } = unitOfWork;
 
     protected abstract ICommandManyFlowBuilderResult<TModel, TResult> BuildCommand(
-        IStartManyCommandResult<TModel, TResult> fromFlow, IRequestXContext<TCommand> commandXContext);
+        IStartManyCommandResult<TModel, TResult> fromFlow, RequestContext<TCommand> commandContext);
 
-    public virtual async Task<OneOf<TResult, Error>> HandleAsync(IRequestXContext<TCommand> requestXContext)
+    public virtual async Task<OneOf<TResult, Error>> HandleAsync(RequestContext<TCommand> requestContext)
     {
-        var buildResult = BuildCommand(new CommandManyResultFlow<TModel, TResult>(), requestXContext);
+        var buildResult = BuildCommand(new CommandManyResultFlow<TModel, TResult>(), requestContext);
         var commandType = buildResult.CommandTypeMany;
         List<TModel> items;
         switch (commandType)
@@ -31,13 +31,13 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>(
                 var createItems = await buildResult.ModelsCreateFunc.Invoke();
                 var createManyCondition = await buildResult.CommandManyCondition.Invoke(createItems);
                 if (createManyCondition.IsT1) return createManyCondition.AsT1;
-                await SqlRepository.CreateManyAsync(createItems, token: requestXContext.CancellationToken);
+                await SqlRepository.CreateManyAsync(createItems, token: requestContext.CancellationToken);
                 items = createItems;
                 break;
             case CommandTypeMany.Update:
                 var updateItems = await SqlRepository
                     .GetManyByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
-                        token: requestXContext.CancellationToken);
+                        token: requestContext.CancellationToken);
                 var updateManyCondition = await buildResult.CommandManyCondition.Invoke(updateItems);
                 if (updateManyCondition.IsT1) return updateManyCondition.AsT1;
                 await buildResult.UpdateManyFunc.Invoke(updateItems);
@@ -45,10 +45,10 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>(
                 break;
             case CommandTypeMany.Remove:
                 var removeItems = await SqlRepository.GetManyByConditionAsync(buildResult.CommandFilter,
-                    buildResult.CommandSpecialAction, token: requestXContext.CancellationToken);
+                    buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
                 var removeManyCondition = await buildResult.CommandManyCondition.Invoke(removeItems);
                 if (removeManyCondition.IsT1) return removeManyCondition.AsT1;
-                await SqlRepository.RemoveManyAsync(removeItems, requestXContext.CancellationToken);
+                await SqlRepository.RemoveManyAsync(removeItems, requestContext.CancellationToken);
                 items = removeItems;
                 break;
             case CommandTypeMany.Unknown:
@@ -56,7 +56,7 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>(
                 throw new UnreachableException($"Command {commandType} does not support!");
         }
 
-        var saveResult = await UnitOfWork.SaveChangesAsync(requestXContext.CancellationToken);
+        var saveResult = await UnitOfWork.SaveChangesAsync(requestContext.CancellationToken);
         if (saveResult.IsT1)
             return buildResult.SaveChangesError;
         var result = buildResult.ResultFunc.Invoke(items);
