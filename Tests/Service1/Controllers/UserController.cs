@@ -17,7 +17,8 @@ public sealed class UserController(IFlow sender) : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetUser([FromQuery] GetUserQuery query)
     {
-        var result = await sender.Send(query);
-        return result.Match<IActionResult>(Ok, BadRequest);
+        object request = query;
+        var result = await sender.Send(request);
+        return Ok();
     }
 }

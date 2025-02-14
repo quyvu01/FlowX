@@ -1,3 +1,4 @@
 namespace FlowX.Abstractions;
 
-public interface IRequest<out TResult>;
+public interface IRequestBase;
+public interface IRequest<out TResult> : IRequestBase;

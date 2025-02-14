@@ -21,7 +21,7 @@ public sealed class FlowPipeline(IServiceCollection serviceCollection)
             .Where(a => a.IsGenericType && a.GetGenericTypeDefinition() == interfaceReceivedPipeline)
             .ToList();
         if (signatureInterfaceTypes is not { Count: > 0 })
-            throw new FlowXExceptions.PipelineIsNotSqlPipelineBehavior(pipelineType);
+            throw new FlowXExceptions.PipelineIsNotPipelineBehavior(pipelineType);
         if (pipelineType.IsGenericType)
         {
             if (pipelineType.ContainsGenericParameters)
