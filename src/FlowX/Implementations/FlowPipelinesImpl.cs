@@ -7,16 +7,7 @@ public class FlowPipelinesImpl<TRequest, TResult>(
     IRequestHandler<TRequest, TResult> handler)
     where TRequest : IRequest<TResult>
 {
-    public async Task<TResult> ExecuteAsync(RequestContext<TRequest> requestContext)
-    {
-        var next = new Func<Task<TResult>>(() => handler.HandleAsync(requestContext));
-
-        foreach (var behavior in behaviors.Reverse())
-        {
-            var current = next;
-            next = () => behavior.HandleAsync(requestContext, current);
-        }
-
-        return await next();
-    }
+    public Task<TResult> ExecuteAsync(RequestContext<TRequest> requestContext) =>
+        behaviors.Reverse().Aggregate(() => handler.HandleAsync(requestContext),
+            (acc, pipeline) => () => pipeline.HandleAsync(requestContext, acc)).Invoke();
 }
