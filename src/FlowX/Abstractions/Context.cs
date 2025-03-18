@@ -1,6 +1,6 @@
 namespace FlowX.Abstractions;
 
-public interface Context
+public interface IContext
 {
     Dictionary<string, string> Headers { get; }
     CancellationToken CancellationToken { get; }

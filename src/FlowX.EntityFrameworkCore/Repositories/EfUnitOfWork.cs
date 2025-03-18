@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlowX.EntityFrameworkCore.Repositories;
 
-public class EfUnitOfWork(DbContext dbContext) : IUnitOfWork
+public class EfUnitOfWork<TDbContext>(TDbContext dbContext) : IUnitOfWork where TDbContext : DbContext
 {
     public async Task<OneOf<None, Error>> SaveChangesAsync(CancellationToken token = default)
     {

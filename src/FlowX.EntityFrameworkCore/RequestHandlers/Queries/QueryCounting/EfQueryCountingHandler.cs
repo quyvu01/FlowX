@@ -11,9 +11,9 @@ public abstract class EfQueryCountingHandler<TModel, TQuery>(ISqlRepository<TMod
     where TQuery : class, IQueryCounting
 {
     protected abstract ICountingFlowBuilder<TModel> BuildQueryFlow(
-        ICountingFilter<TModel> fromFlow, RequestContext<TQuery> queryContext);
+        ICountingFilter<TModel> fromFlow, IRequestContext<TQuery> queryContext);
 
-    public virtual async Task<CountingResponse> HandleAsync(RequestContext<TQuery> requestContext)
+    public virtual async Task<CountingResponse> HandleAsync(IRequestContext<TQuery> requestContext)
     {
         var flowBuilder = BuildQueryFlow(new CountingFlow<TModel>(), requestContext);
         var count = await sqlRepository

@@ -18,7 +18,7 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>(
 {
     protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
 
-    public virtual async Task<CollectionResponse<TResponse>> HandleAsync(RequestContext<TQuery> requestContext)
+    public virtual async Task<CollectionResponse<TResponse>> HandleAsync(IRequestContext<TQuery> requestContext)
     {
         var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
         switch (buildResult.QuerySpecialActionType)
@@ -54,5 +54,5 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>(
     }
 
     protected abstract IQueryListFlowBuilder<TModel, TResponse> BuildQueryFlow(
-        IQueryListFilter<TModel, TResponse> fromFlow, RequestContext<TQuery> queryContext);
+        IQueryListFilter<TModel, TResponse> fromFlow, IRequestContext<TQuery> queryContext);
 }

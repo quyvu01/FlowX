@@ -8,7 +8,7 @@ internal class PagedPipeline<TRequest, TResult> : IFlowPipelineBehavior<TRequest
     where TRequest : GetManyQuery, IRequest<TResult>
     where TResult : PaginationResponseGeneral
 {
-    public async Task<TResult> HandleAsync(RequestContext<TRequest> requestContext, Func<Task<TResult>> next)
+    public async Task<TResult> HandleAsync(IRequestContext<TRequest> requestContext, Func<Task<TResult>> next)
     {
         var result = await next.Invoke();
         var take = requestContext.Request.Take;

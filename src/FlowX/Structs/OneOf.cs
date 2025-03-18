@@ -6,12 +6,12 @@ using FlowX.Messages;
 
 namespace FlowX.Structs;
 
-public interface OneOf
+public interface IOneOf
 {
     object Value { get; }
 }
 
-public readonly struct OneOf<T0, T1> : OneOf, IMessageSerialized
+public readonly struct OneOf<T0, T1> : IOneOf, IMessageSerialized
 {
     private readonly T0 _t0;
     private readonly T1 _t1;
@@ -48,6 +48,18 @@ public readonly struct OneOf<T0, T1> : OneOf, IMessageSerialized
 
     public Task<TResult> MatchAsync<TResult>(Func<T0, Task<TResult>> t0FuncTask, Func<T1, Task<TResult>> t1FuncTask) =>
         IsT0 ? t0FuncTask.Invoke(_t0) : t1FuncTask.Invoke(_t1);
+
+    public OneOf<T, T1> MapT0<T>(Func<T0, T> func)
+    {
+        if (IsT1) return AsT1;
+        return func.Invoke(_t0);
+    }
+    
+    public OneOf<T0, T> MapT1<T>(Func<T1, T> func)
+    {
+        if (IsT0) return AsT0;
+        return func.Invoke(_t1);
+    }
 
     private OneOf(T0 t0)
     {

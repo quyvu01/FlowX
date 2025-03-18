@@ -14,7 +14,7 @@ namespace FlowX.DefaultPipelines;
 internal sealed class TransportPipeline<TRequest, TResult>(IServiceProvider serviceProvider)
     : IFlowPipelineBehavior<TRequest, TResult> where TRequest : IRequest<TResult>
 {
-    public async Task<TResult> HandleAsync(RequestContext<TRequest> requestXContext, Func<Task<TResult>> next)
+    public async Task<TResult> HandleAsync(IRequestContext<TRequest> requestXContext, Func<Task<TResult>> next)
     {
         var isRequestRegisteredInApp = FlowXCached.RequestMapResponse
             .TryGetValue(typeof(TRequest), out _);
