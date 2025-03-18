@@ -12,7 +12,7 @@ public sealed class GetProvinceHandler(ISqlRepository<Province> sqlRepository)
     : EfQueryOneHandler<Province, GetProvinceQuery, ProvinceResponse>(sqlRepository)
 {
     protected override IQueryOneFlowBuilder<Province, ProvinceResponse> BuildQueryFlow(
-        IQueryOneFilter<Province, ProvinceResponse> fromFlow, RequestContext<GetProvinceQuery> queryContext)
+        IQueryOneFilter<Province, ProvinceResponse> fromFlow, IRequestContext<GetProvinceQuery> queryContext)
         => fromFlow
             .WithFilter(a => a.Id == queryContext.Request.Id)
             .WithSpecialAction(a => a.Select(u => new ProvinceResponse { Id = u.Id, Name = u.Name }))

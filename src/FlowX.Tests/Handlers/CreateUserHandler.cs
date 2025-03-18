@@ -12,7 +12,7 @@ public sealed class CreateUserHandler(ISqlRepository<User> sqlRepository, IUnitO
     : EfCommandOneVoidHandler<User, CreateUserCommand>(sqlRepository, unitOfWork)
 {
     protected override ICommandOneFlowBuilderVoid<User> BuildCommand(IStartOneCommandVoid<User> fromFlow,
-        RequestContext<CreateUserCommand> commandContext)
+        IRequestContext<CreateUserCommand> commandContext)
         => fromFlow
             .CreateOne(new User
             {

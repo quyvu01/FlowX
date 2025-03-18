@@ -10,28 +10,28 @@ namespace FlowX.Implementations;
 
 internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
 {
-    private static readonly Lazy<ConcurrentDictionary<(Type RequestType, Type ResultType), Type>> flowPipelineStorage =
+    private static readonly Lazy<ConcurrentDictionary<(Type RequestType, Type ResultType), Type>> FlowPipelineStorage =
         new(() => []);
 
-    private static readonly Lazy<ConcurrentDictionary<Type, Type>> requestMapResponseType =
+    private static readonly Lazy<ConcurrentDictionary<Type, Type>> RequestMapResponseType =
         new(() => []);
 
-    private static readonly Lazy<ConcurrentDictionary<Type, MethodInfo>> methodInfoStorage =
+    private static readonly Lazy<ConcurrentDictionary<Type, MethodInfo>> MethodInfoStorage =
         new(() => []);
 
 
-    public async Task<TResult> Send<TResult>(IRequest<TResult> request, Context context = null)
+    public async Task<TResult> Send<TResult>(IRequest<TResult> request, IContext context = null)
     {
         if (request is null) throw new ArgumentNullException(nameof(request));
         const string executeAsyncName = nameof(FlowPipelinesImpl<IRequest<TResult>, TResult>.ExecuteAsync);
         var requestType = request.GetType();
 
-        var serviceType = flowPipelineStorage.Value.GetOrAdd((requestType, typeof(TResult)),
+        var serviceType = FlowPipelineStorage.Value.GetOrAdd((requestType, typeof(TResult)),
             rq => typeof(FlowPipelinesImpl<,>).MakeGenericType(rq.RequestType, rq.ResultType));
 
         var pipelineService = serviceProvider.GetRequiredService(serviceType);
-        var methodInfo = methodInfoStorage.Value.GetOrAdd(requestType, rq => pipelineService.GetType()
-            .GetMethod(executeAsyncName, [typeof(RequestContext<>).MakeGenericType(rq)]));
+        var methodInfo = MethodInfoStorage.Value.GetOrAdd(requestType, rq => pipelineService.GetType()
+            .GetMethod(executeAsyncName, [typeof(IRequestContext<>).MakeGenericType(rq)]));
         if (methodInfo is null) throw new UnreachableException();
         var headers = context?.Headers ?? [];
         var cancellationToken = context?.CancellationToken ?? CancellationToken.None;
@@ -42,12 +42,12 @@ internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
     }
 
     // Todo: Temp add Send method with object to test. Update later!
-    public async Task<object> Send(object request, Context context = null)
+    public async Task<object> Send(object request, IContext context = null)
     {
         if (request is null) throw new ArgumentNullException(nameof(request));
         var requestType = request.GetType();
         if (request is not IRequestBase) throw new FlowXExceptions.RequestIsNotRequestBase(requestType);
-        var resultType = requestMapResponseType.Value.GetOrAdd(requestType, rq =>
+        var resultType = RequestMapResponseType.Value.GetOrAdd(requestType, rq =>
         {
             var interfaceType = rq
                 .GetInterfaces()
@@ -56,12 +56,12 @@ internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
             return interfaceType.GetGenericArguments()[0];
         });
 
-        var serviceType = flowPipelineStorage.Value.GetOrAdd((requestType, resultType),
+        var serviceType = FlowPipelineStorage.Value.GetOrAdd((requestType, resultType),
             rq => typeof(FlowPipelinesImpl<,>).MakeGenericType(rq.RequestType, rq.ResultType));
 
         var pipelineService = serviceProvider.GetRequiredService(serviceType);
-        var methodInfo = methodInfoStorage.Value.GetOrAdd(requestType, rq => pipelineService.GetType()
-            .GetMethod("ExecuteAsync", [typeof(RequestContext<>).MakeGenericType(rq)]));
+        var methodInfo = MethodInfoStorage.Value.GetOrAdd(requestType, rq => pipelineService.GetType()
+            .GetMethod("ExecuteAsync", [typeof(IRequestContext<>).MakeGenericType(rq)]));
         if (methodInfo is null) throw new UnreachableException();
         var headers = context?.Headers ?? [];
         var cancellationToken = context?.CancellationToken ?? CancellationToken.None;

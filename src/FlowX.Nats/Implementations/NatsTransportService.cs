@@ -6,7 +6,7 @@ namespace FlowX.Nats.Implementations;
 
 public sealed class NatsTransportService(IServiceProvider serviceProvider) : ITransportService
 {
-    public Task<TResult> TransportDataAsync<TRequest, TResult>(RequestContext<TRequest> requestContext)
+    public Task<TResult> TransportDataAsync<TRequest, TResult>(IRequestContext<TRequest> requestContext)
         where TRequest : IRequest<TResult>
     {
         var natsRequester = serviceProvider.GetService<INatsRequester<TRequest, TResult>>();

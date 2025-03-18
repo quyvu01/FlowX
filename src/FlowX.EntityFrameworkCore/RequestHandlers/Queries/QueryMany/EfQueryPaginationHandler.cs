@@ -19,9 +19,9 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>(
     protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
 
     protected abstract IQueryListFlowBuilder<TModel, TResponse> BuildQueryFlow(
-        IQueryListFilter<TModel, TResponse> fromFlow, RequestContext<TQuery> queryContext);
+        IQueryListFilter<TModel, TResponse> fromFlow, IRequestContext<TQuery> queryContext);
 
-    public virtual async Task<PaginationResponse<TResponse>> HandleAsync(RequestContext<TQuery> requestContext)
+    public virtual async Task<PaginationResponse<TResponse>> HandleAsync(IRequestContext<TQuery> requestContext)
     {
         var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
         switch (buildResult.QuerySpecialActionType)

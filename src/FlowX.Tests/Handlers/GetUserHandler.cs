@@ -12,7 +12,7 @@ public sealed class GetUserHandler(ISqlRepository<User> sqlRepository)
     : EfQueryOneHandler<User, GetUserQuery, UserResponse>(sqlRepository)
 {
     protected override IQueryOneFlowBuilder<User, UserResponse> BuildQueryFlow(
-        IQueryOneFilter<User, UserResponse> fromFlow, RequestContext<GetUserQuery> queryContext)
+        IQueryOneFilter<User, UserResponse> fromFlow, IRequestContext<GetUserQuery> queryContext)
         => fromFlow
             .WithFilter(a => a.Id == queryContext.Request.Id)
             .WithSpecialAction(a => a)

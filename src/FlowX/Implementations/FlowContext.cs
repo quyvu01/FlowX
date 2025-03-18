@@ -6,7 +6,7 @@ public sealed class FlowContext<TRequest>(
     TRequest request,
     Dictionary<string, string> headers,
     CancellationToken cancellationToken)
-    : RequestContext<TRequest>
+    : IRequestContext<TRequest>
 {
     public Dictionary<string, string> Headers { get; } = headers;
     public CancellationToken CancellationToken { get; } = cancellationToken;

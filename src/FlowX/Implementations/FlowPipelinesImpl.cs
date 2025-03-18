@@ -7,7 +7,7 @@ public class FlowPipelinesImpl<TRequest, TResult>(
     IRequestHandler<TRequest, TResult> handler)
     where TRequest : IRequest<TResult>
 {
-    public async Task<TResult> ExecuteAsync(RequestContext<TRequest> requestContext)
+    public async Task<TResult> ExecuteAsync(IRequestContext<TRequest> requestContext)
     {
         var next = new Func<Task<TResult>>(() => handler.HandleAsync(requestContext));
 

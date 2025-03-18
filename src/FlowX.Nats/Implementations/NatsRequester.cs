@@ -14,9 +14,9 @@ namespace FlowX.Nats.Implementations;
 internal sealed class NatsRequester<TRequest, TResult>(NatsClientWrapper client)
     : INatsRequester<TRequest, TResult> where TRequest : IRequest<TResult>
 {
-    private static readonly Func<object, TResult> _oneOfFactory = CreateOneOfFactory();
+    private static readonly Func<object, TResult> OneOfFactory = CreateOneOfFactory();
 
-    public async Task<TResult> RequestAsync(RequestContext<TRequest> requestContext)
+    public async Task<TResult> RequestAsync(IRequestContext<TRequest> requestContext)
     {
         var natsHeaders = new NatsHeaders();
         requestContext.Headers?.ForEach(h => natsHeaders.Add(h.Key, h.Value));
@@ -28,8 +28,8 @@ internal sealed class NatsRequester<TRequest, TResult>(NatsClientWrapper client)
         if (reply.Data is not { } data)
             throw new ArgumentNullException(nameof(reply.Data));
         var response = JsonSerializer.Deserialize(data.ObjectSerialized, Type.GetType(data.Type)!);
-        if (!typeof(OneOf).IsAssignableFrom(typeof(TResult))) return (TResult)response;
-        return _oneOfFactory!(response);
+        if (!typeof(IOneOf).IsAssignableFrom(typeof(TResult))) return (TResult)response;
+        return OneOfFactory!(response);
     }
 
     private static Func<object, TResult> CreateOneOfFactory()

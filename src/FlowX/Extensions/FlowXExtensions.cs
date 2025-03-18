@@ -129,10 +129,10 @@ public static class FlowXExtensions
                 .Select(concreteRequest =>
                     GetConcreteRegistrationTypes(openRequestInterface, concreteRequest, concretion));
 
-            foreach (var (Service, Implementation) in registrationTypes)
+            foreach (var (service, implementation) in registrationTypes)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                services.AddTransient(Service, Implementation);
+                services.AddTransient(service, implementation);
             }
         }
     }

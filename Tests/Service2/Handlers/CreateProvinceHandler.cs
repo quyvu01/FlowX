@@ -12,7 +12,7 @@ public sealed class CreateProvinceHandler(ISqlRepository<Province> sqlRepository
     : EfCommandOneVoidHandler<Province, CreateProvinceCommand>(sqlRepository, unitOfWork)
 {
     protected override ICommandOneFlowBuilderVoid<Province> BuildCommand(IStartOneCommandVoid<Province> fromFlow,
-        RequestContext<CreateProvinceCommand> commandContext)
+        IRequestContext<CreateProvinceCommand> commandContext)
         => fromFlow
             .CreateOne(new Province { Id = Guid.NewGuid(), Name = commandContext.Request.Name })
             .WithCondition(_ => None.Value)

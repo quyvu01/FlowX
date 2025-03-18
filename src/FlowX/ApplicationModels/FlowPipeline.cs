@@ -6,7 +6,7 @@ namespace FlowX.ApplicationModels;
 
 public sealed class FlowPipeline(IServiceCollection serviceCollection)
 {
-    private static readonly Type interfaceReceivedPipeline = typeof(IFlowPipelineBehavior<,>);
+    private static readonly Type InterfaceReceivedPipeline = typeof(IFlowPipelineBehavior<,>);
 
     public FlowPipeline OfType<TReceivedPipeline>(ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
     {
@@ -18,7 +18,7 @@ public sealed class FlowPipeline(IServiceCollection serviceCollection)
     public FlowPipeline OfType(Type pipelineType, ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
     {
         var signatureInterfaceTypes = pipelineType.GetInterfaces()
-            .Where(a => a.IsGenericType && a.GetGenericTypeDefinition() == interfaceReceivedPipeline)
+            .Where(a => a.IsGenericType && a.GetGenericTypeDefinition() == InterfaceReceivedPipeline)
             .ToList();
         if (signatureInterfaceTypes is not { Count: > 0 })
             throw new FlowXExceptions.PipelineIsNotPipelineBehavior(pipelineType);
@@ -26,7 +26,7 @@ public sealed class FlowPipeline(IServiceCollection serviceCollection)
         {
             if (pipelineType.ContainsGenericParameters)
             {
-                serviceCollection.Add(new ServiceDescriptor(interfaceReceivedPipeline, pipelineType, serviceLifetime));
+                serviceCollection.Add(new ServiceDescriptor(InterfaceReceivedPipeline, pipelineType, serviceLifetime));
                 return this;
             }
         }

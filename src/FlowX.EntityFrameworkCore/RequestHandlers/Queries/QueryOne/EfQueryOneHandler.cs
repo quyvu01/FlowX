@@ -19,9 +19,9 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>(
     protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
 
     protected abstract IQueryOneFlowBuilder<TModel, TResponse> BuildQueryFlow(
-        IQueryOneFilter<TModel, TResponse> fromFlow, RequestContext<TQuery> queryContext);
+        IQueryOneFilter<TModel, TResponse> fromFlow, IRequestContext<TQuery> queryContext);
 
-    public virtual async Task<OneOf<TResponse, Error>> HandleAsync(RequestContext<TQuery> requestContext)
+    public virtual async Task<OneOf<TResponse, Error>> HandleAsync(IRequestContext<TQuery> requestContext)
     {
         var buildResult = BuildQueryFlow(new QueryOneFlow<TModel, TResponse>(), requestContext);
         switch (buildResult.QuerySpecialActionType)

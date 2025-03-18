@@ -19,9 +19,9 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>(
     protected IUnitOfWork UnitOfWork { get; } = unitOfWork;
 
     protected abstract ICommandOneFlowBuilderVoid<TModel> BuildCommand(
-        IStartOneCommandVoid<TModel> fromFlow, RequestContext<TCommand> commandContext);
+        IStartOneCommandVoid<TModel> fromFlow, IRequestContext<TCommand> commandContext);
 
-    public virtual async Task<OneOf<None, Error>> HandleAsync(RequestContext<TCommand> requestContext)
+    public virtual async Task<OneOf<None, Error>> HandleAsync(IRequestContext<TCommand> requestContext)
     {
         var buildResult = BuildCommand(new CommandOneVoidFlow<TModel>(), requestContext);
         var commandType = buildResult.CommandTypeOne;
