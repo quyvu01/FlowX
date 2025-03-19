@@ -8,17 +8,19 @@ namespace Service1.Controllers;
 public sealed class UserController(IFlow sender) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> CreateUser([FromBody] CreateUserCommand command)
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserCommand command,
+        CancellationToken cancellationToken)
     {
-        var result = await sender.Send(command);
+        var result = await sender.Send(command, cancellationToken);
         return result.Match<IActionResult>(_ => Ok(), BadRequest);
     }
-    
+
     [HttpGet]
-    public async Task<IActionResult> GetUser([FromQuery] GetUserQuery query)
+    public async Task<IActionResult> GetUser([FromQuery] GetUserQuery query,
+        CancellationToken cancellationToken = default)
     {
         object request = query;
-        var result = await sender.Send(request);
+        var result = await sender.Send(request, cancellationToken);
         return Ok();
     }
 }

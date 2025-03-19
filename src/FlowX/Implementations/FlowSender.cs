@@ -4,6 +4,7 @@ using System.Reflection;
 using FlowX.Abstractions;
 using FlowX.Cached;
 using FlowX.Exceptions;
+using FlowX.Externals;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FlowX.Implementations;
@@ -20,9 +21,9 @@ internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
         new(() => []);
 
 
-    public async Task<TResult> Send<TResult>(IRequest<TResult> request, IContext context = null)
+    private async Task<TResult> Send<TResult>(IRequest<TResult> request, IContext context = null)
     {
-        if (request is null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         const string executeAsyncName = nameof(FlowPipelinesImpl<IRequest<TResult>, TResult>.ExecuteAsync);
         var requestType = request.GetType();
 
@@ -41,8 +42,15 @@ internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
         return await ((Task<TResult>)methodInfo.Invoke(pipelineService, [requestContext]))!;
     }
 
+    public async Task<TResult> Send<TResult>(IRequest<TResult> requestContext,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await Send(requestContext, new FlowXContext([], cancellationToken)).ConfigureAwait(false);
+        return result;
+    }
+
     // Todo: Temp add Send method with object to test. Update later!
-    public async Task<object> Send(object request, IContext context = null)
+    private async Task<object> Send(object request, IContext context = null)
     {
         if (request is null) throw new ArgumentNullException(nameof(request));
         var requestType = request.GetType();
@@ -75,5 +83,11 @@ internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
         var resultProperty = task.GetType().GetProperty("Result");
         if (resultProperty is null) throw new InvalidOperationException("Method did not return a Task with a result.");
         return resultProperty.GetValue(task);
+    }
+
+    public async Task<object> Send(object request, CancellationToken cancellationToken = default)
+    {
+        var result = await Send(request, new FlowXContext([], cancellationToken)).ConfigureAwait(false);
+        return result;
     }
 }
