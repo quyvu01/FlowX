@@ -8,16 +8,18 @@ namespace Service1.Controllers;
 public sealed class ExternalController(IFlow sender) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetProvince([FromQuery] GetProvinceQuery query)
+    public async Task<IActionResult> GetProvince([FromQuery] GetProvinceQuery query,
+        CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(query);
+        var result = await sender.Send(query, cancellationToken);
         return result.Match<IActionResult>(Ok, BadRequest);
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetProvinces([FromQuery] GetProvincesQuery query)
+    public async Task<IActionResult> GetProvinces([FromQuery] GetProvincesQuery query,
+        CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(query);
+        var result = await sender.Send(query, cancellationToken);
         return Ok(result);
     }
 }

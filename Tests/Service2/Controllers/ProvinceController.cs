@@ -8,16 +8,18 @@ namespace Service2.Controllers;
 public sealed class ProvinceController(IFlow sender) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> CreateProvince([FromBody] CreateProvinceCommand command)
+    public async Task<IActionResult> CreateProvince([FromBody] CreateProvinceCommand command,
+        CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(command);
+        var result = await sender.Send(command, cancellationToken);
         return result.Match<IActionResult>(_ => Ok(), BadRequest);
     }
-    
+
     [HttpGet]
-    public async Task<IActionResult> GetProvince([FromQuery] GetProvinceQuery query)
+    public async Task<IActionResult> GetProvince([FromQuery] GetProvinceQuery query,
+        CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(query);
+        var result = await sender.Send(query, cancellationToken);
         return result.Match<IActionResult>(Ok, BadRequest);
     }
 }
