@@ -6,7 +6,7 @@
         <LangVersion>default</LangVersion>
         <Authors>Quy Vu</Authors>
         <PackageIcon>FlowX.png</PackageIcon>
-        <Version>4.0.1</Version>
+        <Version>4.0.2</Version>
         <PackageId>FlowX</PackageId>
         <Description>FlowX, a high performance and convenience package for database</Description>
         <PackageTags>FlowX;open-source;ORM</PackageTags>
