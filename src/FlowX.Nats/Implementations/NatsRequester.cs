@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text.Json;
 using FlowX.Abstractions;
 using FlowX.Extensions;
@@ -14,7 +15,7 @@ namespace FlowX.Nats.Implementations;
 internal sealed class NatsRequester<TRequest, TResult>(NatsClientWrapper client)
     : INatsRequester<TRequest, TResult> where TRequest : IRequest<TResult>
 {
-    private static readonly Func<object, TResult> OneOfFactory = CreateOneOfFactory();
+    private static readonly Func<MessageSerialized, TResult> OneOfFactory = CreateOneOfFactory();
 
     public async Task<TResult> RequestAsync(IRequestContext<TRequest> requestContext)
     {
@@ -25,20 +26,18 @@ internal sealed class NatsRequester<TRequest, TResult>(NatsClientWrapper client)
         var reply = await client.NatsClient
             .RequestAsync<NatsMessageWrapper, MessageSerialized>(typeof(TRequest).GetNatsSubject(),
                 natsMessageWrapped, natsHeaders, cancellationToken: requestContext.CancellationToken);
-        if (reply.Data is not { } data)
-            throw new ArgumentNullException(nameof(reply.Data));
-        var response = JsonSerializer.Deserialize(data.ObjectSerialized, Type.GetType(data.Type)!);
-        if (!typeof(IOneOf).IsAssignableFrom(typeof(TResult))) return (TResult)response;
-        return OneOfFactory!(response);
+        if (reply.Data is not { } data) throw new ArgumentNullException(nameof(reply.Data));
+        if (!typeof(IOneOf).IsAssignableFrom(typeof(TResult)))
+            return (TResult)JsonSerializer.Deserialize(data.ObjectSerialized, Type.GetType(data.Type)!);
+        return OneOfFactory!(data);
     }
 
-    private static Func<object, TResult> CreateOneOfFactory()
+    private static Func<MessageSerialized, TResult> CreateOneOfFactory()
     {
-        var param = Expression.Parameter(typeof(object), "arg");
-        var convertedParam =
-            Expression.Convert(param, typeof(TResult).GetGenericArguments()[0]); // Convert to the underlying type
-        var newExpr = Expression.New(typeof(TResult).GetConstructor([convertedParam.Type])!, convertedParam);
-        var lambda = Expression.Lambda<Func<object, TResult>>(newExpr, param);
+        var param = Expression.Parameter(typeof(MessageSerialized), "message");
+        var method = typeof(TResult).GetMethod("DeSerialize", BindingFlags.Public | BindingFlags.Static);
+        var call = Expression.Call(method!, param);
+        var lambda = Expression.Lambda<Func<MessageSerialized, TResult>>(call, param);
         return lambda.Compile();
     }
 }

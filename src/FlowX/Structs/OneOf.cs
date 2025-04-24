@@ -28,6 +28,14 @@ public readonly struct OneOf<T0, T1> : IOneOf, IMessageSerialized
         return new MessageSerialized
             { Type = type, ObjectSerialized = Value is not null ? JsonSerializer.Serialize(Value) : null };
     }
+    
+    public static OneOf<T0, T1> DeSerialize(MessageSerialized message)
+    {
+        var type = Type.GetType(message.Type);
+        if (type is null) throw new ArgumentNullException($"Type {message.Type} not found!");
+        var value = JsonSerializer.Deserialize(message.ObjectSerialized, type);
+        return new OneOf<T0, T1>(value);
+    }
 
     public void Switch(Action<T0> t0Action, Action<T1> t1Action)
     {
