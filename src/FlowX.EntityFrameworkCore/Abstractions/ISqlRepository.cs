@@ -2,7 +2,7 @@
 using FlowX.ApplicationModels;
 using FlowX.Structs;
 
-namespace FlowX.Abstractions;
+namespace FlowX.EntityFrameworkCore.Abstractions;
 
 public interface ISqlRepository<T> where T : class
 {

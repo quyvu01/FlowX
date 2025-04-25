@@ -1,5 +1,6 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
+using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryMany;
 using FlowX.Structs;
 using Service2.Contracts.Requests;

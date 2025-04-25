@@ -1,4 +1,5 @@
 using FlowX.Abstractions;
+using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.EntityFrameworkCore.Extensions;
 using FlowX.Extensions;
 using FlowX.Tests.DbContexts;
