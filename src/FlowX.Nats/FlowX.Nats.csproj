@@ -4,7 +4,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
         <LangVersion>default</LangVersion>
-        <Version>4.0.2</Version>
+        <Version>5.0.0</Version>
         <PackageId>FlowX.Nats</PackageId>
         <Description>FlowX.Nats, Nats.io extension. Use Nats as Data transporting</Description>
         <PackageTags>FlowX;open-source;entity-framework;Nats</PackageTags>
