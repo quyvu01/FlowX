@@ -41,8 +41,10 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>(
             {
                 var collection = SqlRepository.GetQueryable(buildResult.Filter)
                     .AsNoTracking();
-                return await buildResult.SpecialActionToResponse.Invoke(collection)
+                var item = await buildResult.SpecialActionToResponse.Invoke(collection)
                     .FirstOrDefaultAsync(requestContext.CancellationToken);
+                if (item is null) return buildResult.Error;
+                return item;
             }
         }
     }
