@@ -18,20 +18,17 @@ internal class NatsServerRpc<TRequest, TResult>(IServiceProvider serviceProvider
     private readonly ILogger<NatsServerRpc<TRequest, TResult>> _logger =
         serviceProvider.GetService<ILogger<NatsServerRpc<TRequest, TResult>>>();
 
+    private readonly NatsClientWrapper _natsClient = serviceProvider.GetRequiredService<NatsClientWrapper>();
+
     public async Task SubscribeAsync()
     {
         var natsClient = serviceProvider.GetRequiredService<NatsClientWrapper>();
         var natsScribeAsync = natsClient.NatsClient
             .SubscribeAsync<NatsMessageWrapper>(typeof(TRequest).GetNatsSubject());
-        await foreach (var message in natsScribeAsync)
-        {
-            var replyAddress = message.ReplyTo!;
-            _ = ProcessMessageAsync(message, natsClient, replyAddress);
-        }
+        await foreach (var message in natsScribeAsync) _ = ProcessMessageAsync(message);
     }
 
-    private async Task ProcessMessageAsync(NatsMsg<NatsMessageWrapper> message, NatsClientWrapper natsClient,
-        string replyAddress)
+    private async Task ProcessMessageAsync(NatsMsg<NatsMessageWrapper> message)
     {
         try
         {
@@ -47,13 +44,13 @@ internal class NatsServerRpc<TRequest, TResult>(IServiceProvider serviceProvider
             var response = await pipeline.ExecuteAsync(requestContext);
             if (response is IMessageSerialized oneOf)
             {
-                await natsClient.NatsClient.PublishAsync(replyAddress, oneOf.Serialize());
+                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, oneOf.Serialize());
                 return;
             }
 
             var messageSerialize = new MessageSerialized
                 { Type = typeof(TResult).GetAssemblyName(), ObjectSerialized = JsonSerializer.Serialize(response) };
-            await natsClient.NatsClient.PublishAsync(replyAddress, messageSerialize);
+            await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, messageSerialize);
         }
         catch (Exception e)
         {
