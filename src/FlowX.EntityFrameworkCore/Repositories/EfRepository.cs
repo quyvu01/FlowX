@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using FlowX.Abstractions;
 using FlowX.ApplicationModels;
+using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.Structs;
 using Microsoft.EntityFrameworkCore;
 

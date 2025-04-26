@@ -3,6 +3,7 @@ using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryOneFlow;
+using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.Errors;
 using FlowX.Structs;
 using Microsoft.EntityFrameworkCore;
@@ -41,8 +42,10 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>(
             {
                 var collection = SqlRepository.GetQueryable(buildResult.Filter)
                     .AsNoTracking();
-                return await buildResult.SpecialActionToResponse.Invoke(collection)
+                var item = await buildResult.SpecialActionToResponse.Invoke(collection)
                     .FirstOrDefaultAsync(requestContext.CancellationToken);
+                if (item is null) return buildResult.Error;
+                return item;
             }
         }
     }

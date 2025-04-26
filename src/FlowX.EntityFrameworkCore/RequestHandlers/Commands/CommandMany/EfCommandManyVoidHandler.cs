@@ -2,6 +2,7 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandManyFlow;
+using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.Errors;
 using FlowX.Structs;
 

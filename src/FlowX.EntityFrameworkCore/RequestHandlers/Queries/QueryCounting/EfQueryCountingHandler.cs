@@ -1,6 +1,7 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.CountingFlow;
+using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.Responses;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryCounting;

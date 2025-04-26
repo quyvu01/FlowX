@@ -3,6 +3,7 @@ using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
+using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.Extensions;
 using FlowX.Responses;
 using Microsoft.EntityFrameworkCore;
