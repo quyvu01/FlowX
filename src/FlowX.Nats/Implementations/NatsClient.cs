@@ -4,12 +4,13 @@ using FlowX.Extensions;
 using FlowX.Nats.Abstractions;
 using FlowX.Nats.Extensions;
 using FlowX.Nats.Wrappers;
+using FlowX.Wrappers;
 using NATS.Client.Core;
 
 namespace FlowX.Nats.Implementations;
 
-internal sealed class NatsRequester<TRequest, TResult>(NatsClientWrapper client)
-    : INatsRequester<TRequest, TResult> where TRequest : IRequest<TResult>
+internal sealed class NatsClient<TRequest, TResult>(NatsClientWrapper client)
+    : INatsClient<TRequest, TResult> where TRequest : IRequest<TResult>
 {
     public async Task<TResult> RequestAsync(IRequestContext<TRequest> requestContext)
     {
@@ -18,8 +19,12 @@ internal sealed class NatsRequester<TRequest, TResult>(NatsClientWrapper client)
         var natsMessageWrapped = new NatsMessageWrapper
             { MessageAsString = JsonSerializer.Serialize(requestContext.Request) };
         var reply = await client.NatsClient
-            .RequestAsync<NatsMessageWrapper, TResult>(typeof(TRequest).GetNatsSubject(),
+            .RequestAsync<NatsMessageWrapper, NatResponseWrapped<TResult>>(typeof(TRequest).GetNatsSubject(),
                 natsMessageWrapped, natsHeaders, cancellationToken: requestContext.CancellationToken);
-        return reply.Data;
+        var result = reply.Data;
+        if (result is null) throw new ArgumentNullException(nameof(result));
+        return result.TypeAssembly is null
+            ? result.Response
+            : throw ExceptionSerializable.ToException(result.ExceptionSerializable);
     }
 }

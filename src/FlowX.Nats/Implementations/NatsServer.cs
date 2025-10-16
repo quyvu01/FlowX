@@ -4,17 +4,18 @@ using FlowX.Implementations;
 using FlowX.Nats.Abstractions;
 using FlowX.Nats.Extensions;
 using FlowX.Nats.Wrappers;
+using FlowX.Wrappers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NATS.Client.Core;
 
-namespace FlowX.Nats.Servers;
+namespace FlowX.Nats.Implementations;
 
-internal class NatsServerRpc<TRequest, TResult>(IServiceProvider serviceProvider)
-    : INatsServerRpc<TRequest, TResult> where TRequest : IRequest<TResult>
+internal class NatsServer<TRequest, TResult>(IServiceProvider serviceProvider)
+    : INatsServer<TRequest, TResult> where TRequest : IRequest<TResult>
 {
-    private readonly ILogger<NatsServerRpc<TRequest, TResult>> _logger =
-        serviceProvider.GetService<ILogger<NatsServerRpc<TRequest, TResult>>>();
+    private readonly ILogger<NatsServer<TRequest, TResult>> _logger =
+        serviceProvider.GetService<ILogger<NatsServer<TRequest, TResult>>>();
 
     private readonly NatsClientWrapper _natsClient = serviceProvider.GetRequiredService<NatsClientWrapper>();
 
@@ -39,8 +40,21 @@ internal class NatsServerRpc<TRequest, TResult>(IServiceProvider serviceProvider
                 .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
             var requestContext = new FlowContext<TRequest>(request, headers, CancellationToken.None);
             // Invoke the method and get the result
-            var response = await pipeline.ExecuteAsync(requestContext);
-            await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, response);
+            try
+            {
+                var result = await pipeline.ExecuteAsync(requestContext);
+                var response = new NatResponseWrapped<TResult> { Response = result };
+                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, response);
+            }
+            catch (Exception e)
+            {
+                var exceptionAsResponse = new NatResponseWrapped<TResult>
+                {
+                    ExceptionSerializable = ExceptionSerializable.FromException(e),
+                    TypeAssembly = e.GetType().AssemblyQualifiedName
+                };
+                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, exceptionAsResponse);
+            }
         }
         catch (Exception e)
         {

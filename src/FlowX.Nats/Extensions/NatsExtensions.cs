@@ -3,7 +3,6 @@ using FlowX.Nats.Abstractions;
 using FlowX.Nats.ApplicationModels;
 using FlowX.Nats.BackgroundServices;
 using FlowX.Nats.Implementations;
-using FlowX.Nats.Servers;
 using FlowX.Nats.Statics;
 using FlowX.Nats.Wrappers;
 using FlowX.Registries;
@@ -22,10 +21,10 @@ public static class NatsExtensions
         ClientsRegister(flowXRegister.ServiceCollection);
         flowXRegister.ServiceCollection.AddScoped<ITransportService, NatsTransportService>();
         
-        flowXRegister.ServiceCollection.AddSingleton(typeof(INatsServerRpc<,>), typeof(NatsServerRpc<,>));
+        flowXRegister.ServiceCollection.AddSingleton(typeof(INatsServer<,>), typeof(NatsServer<,>));
         flowXRegister.ServiceCollection.AddHostedService<NatsServerWorker>();
     }
 
     private static void ClientsRegister(IServiceCollection serviceCollection) =>
-        serviceCollection.AddScoped(typeof(INatsRequester<,>), typeof(NatsRequester<,>));
+        serviceCollection.AddScoped(typeof(INatsClient<,>), typeof(NatsClient<,>));
 }

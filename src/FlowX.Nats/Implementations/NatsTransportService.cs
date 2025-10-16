@@ -9,7 +9,7 @@ public sealed class NatsTransportService(IServiceProvider serviceProvider) : ITr
     public Task<TResult> TransportDataAsync<TRequest, TResult>(IRequestContext<TRequest> requestContext)
         where TRequest : IRequest<TResult>
     {
-        var natsRequester = serviceProvider.GetService<INatsRequester<TRequest, TResult>>();
+        var natsRequester = serviceProvider.GetService<INatsClient<TRequest, TResult>>();
         return natsRequester.RequestAsync(requestContext);
     }
 }
