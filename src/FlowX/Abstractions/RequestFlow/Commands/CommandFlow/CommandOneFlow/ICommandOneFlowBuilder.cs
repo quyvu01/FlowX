@@ -9,7 +9,8 @@ public interface ICommandOneFlowBuilderResult<TModel, out TResult> where TModel 
 {
     CommandTypeOne CommandTypeOne { get; }
     Func<Task<TModel>> ModelCreateFunc { get; }
-    Func<TModel, Task<OneOf<None, Error>>> CommandOneCondition { get; }
+    Func<TModel, Task<None>> CommandConditionResultNone { get; }
+    Func<TModel, Task<Error>> CommandConditionResultError { get; }
     Expression<Func<TModel, bool>> CommandFilter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; }
     Func<TModel, Task> UpdateOneFunc { get; }
@@ -21,7 +22,8 @@ public interface ICommandOneFlowBuilderVoid<TModel> where TModel : class
 {
     CommandTypeOne CommandTypeOne { get; }
     Func<Task<TModel>> ModelCreateFunc { get; }
-    Func<TModel, Task<OneOf<None, Error>>> CommandOneCondition { get; }
+    Func<TModel, Task<None>> CommandConditionResultNone { get; }
+    Func<TModel, Task<Error>> CommandConditionResultError { get; }
     Expression<Func<TModel, bool>> CommandFilter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; }
     Func<TModel, Task> UpdateOneFunc { get; }

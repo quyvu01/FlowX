@@ -1,8 +1,6 @@
 using System.Text.Json;
 using FlowX.Abstractions;
-using FlowX.Extensions;
 using FlowX.Implementations;
-using FlowX.Messages;
 using FlowX.Nats.Abstractions;
 using FlowX.Nats.Extensions;
 using FlowX.Nats.Wrappers;
@@ -42,19 +40,11 @@ internal class NatsServerRpc<TRequest, TResult>(IServiceProvider serviceProvider
             var requestContext = new FlowContext<TRequest>(request, headers, CancellationToken.None);
             // Invoke the method and get the result
             var response = await pipeline.ExecuteAsync(requestContext);
-            if (response is IMessageSerialized oneOf)
-            {
-                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, oneOf.Serialize());
-                return;
-            }
-
-            var messageSerialize = new MessageSerialized
-                { Type = typeof(TResult).GetAssemblyName(), ObjectSerialized = JsonSerializer.Serialize(response) };
-            await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, messageSerialize);
+            await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, response);
         }
         catch (Exception e)
         {
-            _logger.LogError("Error while process request: {@Error}", e.Message);
+            _logger?.LogError("Error while process request: {@Error}", e.Message);
         }
     }
 }

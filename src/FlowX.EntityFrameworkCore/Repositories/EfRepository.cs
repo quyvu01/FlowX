@@ -1,13 +1,12 @@
 ﻿using System.Linq.Expressions;
-using FlowX.Abstractions;
 using FlowX.ApplicationModels;
 using FlowX.EntityFrameworkCore.Abstractions;
-using FlowX.Structs;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlowX.EntityFrameworkCore.Repositories;
 
-public class EfRepository<TDbContext, TModel>(TDbContext dbContext) : ISqlRepository<TModel> where TDbContext : DbContext
+public class EfRepository<TDbContext, TModel>(TDbContext dbContext)
+    : ISqlRepository<TModel> where TDbContext : DbContext
     where TModel : class
 {
     private readonly DbSet<TModel> _collection = dbContext.Set<TModel>();
@@ -42,7 +41,8 @@ public class EfRepository<TDbContext, TModel>(TDbContext dbContext) : ISqlReposi
     }
 
     public virtual async Task<Pagination<TModel>> GetManyByConditionWithPaginationAsync(
-        Expression<Func<TModel, bool>> conditionExpression = null, Func<IQueryable<TModel>, IQueryable<TModel>> specialAction = null,
+        Expression<Func<TModel, bool>> conditionExpression = null,
+        Func<IQueryable<TModel>, IQueryable<TModel>> specialAction = null,
         CancellationToken token = default)
     {
         var items = await GetManyByConditionAsync(conditionExpression, specialAction, token);
@@ -58,66 +58,42 @@ public class EfRepository<TDbContext, TModel>(TDbContext dbContext) : ISqlReposi
         return dataWithSpecialAction.LongCountAsync(token);
     }
 
-
-    public virtual Task<OneOf<TModel, Exception>> CreateOneAsync(TModel item, CancellationToken token = default)
+    async Task<TModel> ISqlRepository<TModel>.CreateOneAsync(TModel item, CancellationToken token)
     {
-        if (item is null) return Task.FromResult(OneOf<TModel, Exception>.FromT0(null));
-        try
-        {
-            var result = _collection.Add(item);
-            return Task.FromResult(OneOf<TModel, Exception>.FromT0(result.Entity));
-        }
-        catch (Exception e)
-        {
-            return Task.FromResult(OneOf<TModel, Exception>.FromT1(e));
-        }
+        var result = await _collection.AddAsync(item, token);
+        return result.Entity;
     }
 
-    public virtual Task<OneOf<None, Exception>> CreateManyAsync(List<TModel> items, CancellationToken token = default)
+    async Task<List<TModel>> ISqlRepository<TModel>.CreateManyAsync(List<TModel> items, CancellationToken token)
     {
-        if (items is not { Count: > 0 }) return Task.FromResult(OneOf<None, Exception>.FromT0(None.Value));
-        try
-        {
-            _collection.AddRange(items);
-            return Task.FromResult(OneOf<None, Exception>.FromT0(None.Value));
-        }
-        catch (Exception e)
-        {
-            return Task.FromResult(OneOf<None, Exception>.FromT1(e));
-        }
+        await _collection.AddRangeAsync(items, token);
+        return items;
     }
 
-    public virtual async Task<OneOf<None, Exception>> RemoveOneAsync(OneOf<TModel, Expression<Func<TModel, bool>>> itemOrFilter,
+    public async Task<TModel> RemoveOneAsync(Expression<Func<TModel, bool>> filter, CancellationToken token = default)
+    {
+        var item = await _collection.FirstOrDefaultAsync(filter, token);
+        var result = await _collection.AddAsync(item, token);
+        return result.Entity;
+    }
+
+    public async Task<TModel> RemoveOneAsync(TModel item, CancellationToken token = default)
+    {
+        var result = await _collection.AddAsync(item, token);
+        return result.Entity;
+    }
+
+    public async Task<List<TModel>> RemoveManyAsync(Expression<Func<TModel, bool>> filter,
         CancellationToken token = default)
     {
-        var item = await itemOrFilter.Match(Task.FromResult,
-            filter => GetFirstByConditionAsync(filter, null, token));
-        if (item is null) return None.Value;
-        try
-        {
-            _collection.Remove(item);
-            return None.Value;
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
+        var items = await _collection.Where(filter).ToListAsync(cancellationToken: token);
+        _collection.RemoveRange(items);
+        return items;
     }
 
-    public virtual async Task<OneOf<None, Exception>> RemoveManyAsync(
-        OneOf<List<TModel>, Expression<Func<TModel, bool>>> itemsOrFilter, CancellationToken token = default)
+    public Task<List<TModel>> RemoveManyAsync(List<TModel> items, CancellationToken token = default)
     {
-        var items = await itemsOrFilter.Match(Task.FromResult,
-            filter => GetManyByConditionAsync(filter, null, token));
-        if (items is not { Count: > 0 }) return None.Value;
-        try
-        {
-            _collection.RemoveRange(items);
-            return None.Value;
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
+        _collection.RemoveRange(items);
+        return Task.FromResult(items);
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using FlowX.ApplicationModels;
 using FlowX.Errors;
 using FlowX.Structs;
 
@@ -21,7 +20,8 @@ public class CommandOneResultFlow<TModel, TResult> :
 {
     public CommandTypeOne CommandTypeOne { get; private set; } = CommandTypeOne.Unknown;
     public Func<Task<TModel>> ModelCreateFunc { get; private set; }
-    public Func<TModel, Task<OneOf<None, Error>>> CommandOneCondition { get; private set; }
+    public Func<TModel, Task<None>> CommandConditionResultNone { get; private set; }
+    public Func<TModel, Task<Error>> CommandConditionResultError { get; private set; }
     public Expression<Func<TModel, bool>> CommandFilter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; private set; }
     public Func<TModel, Task> UpdateOneFunc { get; private set; }
@@ -70,48 +70,6 @@ public class CommandOneResultFlow<TModel, TResult> :
         return this;
     }
 
-    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
-        Func<TModel, OneOf<None, Error>> condition)
-    {
-        CommandOneCondition = model => Task.FromResult(condition.Invoke(model));
-        return this;
-    }
-
-    ICommandOneErrorDetailResult<TModel, TResult> IRemoveOneConditionResult<TModel, TResult>.WithCondition(
-        Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
-    {
-        CommandOneCondition = conditionAsync;
-        return this;
-    }
-
-    ICommandOneErrorDetailResult<TModel, TResult> IRemoveOneConditionResult<TModel, TResult>.WithCondition(
-        Func<TModel, OneOf<None, Error>> condition)
-    {
-        CommandOneCondition = model => Task.FromResult(condition.Invoke(model));
-        return this;
-    }
-
-    IUpdateOneModifyResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
-        Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
-    {
-        CommandOneCondition = conditionAsync;
-        return this;
-    }
-
-    IUpdateOneModifyResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
-        Func<TModel, OneOf<None, Error>> condition)
-    {
-        CommandOneCondition = model => Task.FromResult(condition.Invoke(model));
-        return this;
-    }
-
-    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
-        Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
-    {
-        CommandOneCondition = conditionAsync;
-        return this;
-    }
-
     IUpdateOneConditionResult<TModel, TResult> IUpdateOneSpecialActionResult<TModel, TResult>.WithSpecialAction(
         Func<IQueryable<TModel>, IQueryable<TModel>> specialAction)
     {
@@ -151,6 +109,90 @@ public class CommandOneResultFlow<TModel, TResult> :
     public ISaveChangesOneSucceed<TModel, TResult> WithErrorIfSaveChange(Error error)
     {
         SaveChangesError = error;
+        return this;
+    }
+
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, None> condition)
+    {
+        CommandConditionResultNone = models => Task.FromResult(condition.Invoke(models));
+        return this;
+    }
+
+    ICommandOneErrorDetailResult<TModel, TResult> IRemoveOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Error> condition)
+    {
+        CommandConditionResultError = models => Task.FromResult(condition.Invoke(models));
+        return this;
+    }
+
+    ICommandOneErrorDetailResult<TModel, TResult> IRemoveOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Task<None>> conditionAsync)
+    {
+        CommandConditionResultNone = conditionAsync;
+        return this;
+    }
+
+    ICommandOneErrorDetailResult<TModel, TResult> IRemoveOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Task<Error>> conditionAsync)
+    {
+        CommandConditionResultError = conditionAsync;
+        return this;
+    }
+
+    ICommandOneErrorDetailResult<TModel, TResult> IRemoveOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, None> condition)
+    {
+        CommandConditionResultNone = models => Task.FromResult(condition.Invoke(models));
+        return this;
+    }
+
+    IUpdateOneModifyResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Error> condition)
+    {
+        CommandConditionResultError = models => Task.FromResult(condition.Invoke(models));
+        return this;
+    }
+
+    IUpdateOneModifyResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Task<None>> conditionAsync)
+    {
+        CommandConditionResultNone = conditionAsync;
+        return this;
+    }
+
+    IUpdateOneModifyResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Task<Error>> conditionAsync)
+    {
+        CommandConditionResultError = conditionAsync;
+        return this;
+    }
+
+    IUpdateOneModifyResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, None> condition)
+    {
+        CommandConditionResultNone = models => Task.FromResult(condition.Invoke(models));
+        return this;
+    }
+
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Error> condition)
+    {
+        CommandConditionResultError = models => Task.FromResult(condition.Invoke(models));
+        return this;
+    }
+
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Task<None>> conditionAsync)
+    {
+        CommandConditionResultNone = conditionAsync;
+        return this;
+    }
+
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Task<Error>> conditionAsync)
+    {
+        CommandConditionResultError = conditionAsync;
         return this;
     }
 }

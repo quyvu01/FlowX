@@ -12,7 +12,7 @@ public sealed class UserController(IFlow sender) : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(command, cancellationToken);
-        return result.Match<IActionResult>(_ => Ok(), BadRequest);
+        return Ok(result);
     }
 
     [HttpGet]
@@ -20,6 +20,6 @@ public sealed class UserController(IFlow sender) : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await sender.Send(query, cancellationToken);
-        return result.Match<IActionResult>(Ok, BadRequest);
+        return Ok(result);
     }
 }

@@ -1,10 +1,7 @@
-﻿using FlowX.Errors;
-using FlowX.Structs;
+﻿using FlowX.Structs;
 
 namespace FlowX.Abstractions.RequestFlow.Commands;
 
 public interface ICommand<out TResult> : IRequest<TResult>;
-
-public interface ICommandVoid : ICommand<OneOf<None, Error>>;
-
-public interface ICommandResult<TResult> : ICommand<OneOf<TResult, Error>>;
+public interface ICommandVoid : ICommand<None>;
+public interface ICommandResult<out TResult> : ICommand<TResult>;

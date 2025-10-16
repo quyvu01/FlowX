@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
 using FlowX.ApplicationModels;
-using FlowX.Structs;
 
 namespace FlowX.EntityFrameworkCore.Abstractions;
 
@@ -23,13 +22,13 @@ public interface ISqlRepository<T> where T : class
     Task<long> CountByConditionAsync(Expression<Func<T, bool>> conditionExpression = null,
         Func<IQueryable<T>, IQueryable<T>> specialAction = null, CancellationToken token = default);
 
-    Task<OneOf<T, Exception>> CreateOneAsync(T item, CancellationToken token = default);
+    Task<T> CreateOneAsync(T item, CancellationToken token = default);
 
-    Task<OneOf<None, Exception>> CreateManyAsync(List<T> items, CancellationToken token = default);
+    Task<List<T>> CreateManyAsync(List<T> items, CancellationToken token = default);
 
-    Task<OneOf<None, Exception>> RemoveOneAsync(OneOf<T, Expression<Func<T, bool>>> itemOrFilter,
-        CancellationToken token = default);
+    Task<T> RemoveOneAsync(Expression<Func<T, bool>> filter, CancellationToken token = default);
 
-    Task<OneOf<None, Exception>> RemoveManyAsync(OneOf<List<T>, Expression<Func<T, bool>>> itemsOrFilter,
-        CancellationToken token = default);
+    Task<T> RemoveOneAsync(T item, CancellationToken token = default);
+    Task<List<T>> RemoveManyAsync(Expression<Func<T, bool>> filter, CancellationToken token = default);
+    Task<List<T>> RemoveManyAsync(List<T> items, CancellationToken token = default);
 }

@@ -6,10 +6,10 @@ using FlowX.Tests.Responses;
 
 namespace FlowX.Tests.Pipelines;
 
-public sealed class GetUserPipeline : IFlowPipelineBehavior<GetUserQuery, OneOf<UserResponse, Error>>
+public sealed class GetUserPipeline : IFlowPipelineBehavior<GetUserQuery, UserResponse>
 {
-    public async Task<OneOf<UserResponse, Error>> HandleAsync(IRequestContext<GetUserQuery> requestContext,
-        Func<Task<OneOf<UserResponse, Error>>> next)
+    public async Task<UserResponse> HandleAsync(IRequestContext<GetUserQuery> requestContext,
+        Func<Task<UserResponse>> next)
     {
         Console.WriteLine("GetUserPipeline");
         var result = await next.Invoke();

@@ -44,7 +44,7 @@ public sealed class FlowXEfFlowTest : ServicesBuilding
     {
         var sender = ServiceProvider.GetRequiredService<IFlow>();
         var userResult = await sender.Send(new GetUserQuery("1"), CancellationToken.None);
-        Assert.True(userResult.IsT0);
+        Assert.Equal("1", userResult.Id);
     }
 
     [Theory]
@@ -61,10 +61,8 @@ public sealed class FlowXEfFlowTest : ServicesBuilding
     {
         var sender = ServiceProvider.GetRequiredService<IFlow>();
         var userCreatedCommand = new CreateUserCommand("4", "Abc", "ac@gm.co");
-        var userResult = await sender.Send(new CreateUserCommand("4", "Abc", "ac@gm.co"), CancellationToken.None);
-        Assert.True(userResult.IsT0);
+        await sender.Send(new CreateUserCommand("4", "Abc", "ac@gm.co"), CancellationToken.None);
         var newUser = await sender.Send(new GetUserQuery(userCreatedCommand.Id), CancellationToken.None);
-        Assert.True(newUser.IsT0);
-        Assert.Equal(newUser.AsT0.Email, userCreatedCommand.Email);
+        Assert.Equal(newUser.Email, userCreatedCommand.Email);
     }
 }
