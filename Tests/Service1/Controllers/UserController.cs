@@ -19,8 +19,7 @@ public sealed class UserController(IFlow sender) : ControllerBase
     public async Task<IActionResult> GetUser([FromQuery] GetUserQuery query,
         CancellationToken cancellationToken = default)
     {
-        object request = query;
-        var result = await sender.Send(request, cancellationToken);
-        return Ok();
+        var result = await sender.Send(query, cancellationToken);
+        return result.Match<IActionResult>(Ok, BadRequest);
     }
 }
