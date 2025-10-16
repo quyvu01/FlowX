@@ -72,9 +72,8 @@ public class FlowXEfCoreTest : ServicesBuilding
         var userRepository = ServiceProvider.GetRequiredService<ISqlRepository<User>>();
         var unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
         var newUser = new User { Id = "4", Name = "Some one like you!", Email = "abc@gm.co" };
-        var userCreatedResult = await userRepository.CreateOneAsync(newUser);
+        await userRepository.CreateOneAsync(newUser);
         await unitOfWork.SaveChangesAsync();
-        Assert.True(userCreatedResult.IsT0);
         var userCreated = await userRepository.GetFirstByConditionAsync(a => a.Id == newUser.Id);
         Assert.Equal(newUser.Name, userCreated.Name);
     }

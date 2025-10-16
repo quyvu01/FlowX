@@ -12,7 +12,7 @@ public sealed class ExternalController(IFlow sender) : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await sender.Send(query, cancellationToken);
-        return result.Match<IActionResult>(Ok, BadRequest);
+        return Ok(result);
     }
 
     [HttpGet]

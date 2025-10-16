@@ -2,7 +2,7 @@ using FlowX.Abstractions;
 using FlowX.Cached;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FlowX.DefaultPipelines;
+namespace FlowX.Internals;
 
 /// <summary>
 /// The `TransportPipelineImpl` is the default pipeline of FlowX, which automatically handles requests across services.

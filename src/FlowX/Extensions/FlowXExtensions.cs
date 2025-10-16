@@ -1,8 +1,8 @@
 using System.Reflection;
 using FlowX.Abstractions;
 using FlowX.Cached;
-using FlowX.DefaultPipelines;
 using FlowX.Implementations;
+using FlowX.Internals;
 using FlowX.Registries;
 using FlowX.Statics;
 using FlowX.Wrappers;

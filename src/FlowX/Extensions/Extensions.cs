@@ -6,8 +6,6 @@ namespace FlowX.Extensions;
 
 public static class Extensions
 {
-    public static string GetAssemblyName(this Type type) => $"{type.FullName},{type.Assembly.GetName().Name}";
-
     public static void ForEach<T>(this IEnumerable<T> src, Action<T> action)
     {
         foreach (var item in src ?? []) action?.Invoke(item);
@@ -60,7 +58,6 @@ public static class Extensions
     public static bool CanBeCastTo(this Type pluggedType, Type pluginType)
     {
         if (pluggedType is null) return false;
-
         return pluggedType == pluginType || pluginType.IsAssignableFrom(pluggedType);
     }
 
@@ -72,12 +69,12 @@ public static class Extensions
         var concreteArguments = openConcretion.GenericTypeArguments;
         return arguments.Length == concreteArguments.Length && openConcretion.CanBeCastTo(openInterface);
     }
-    
+
     public static IEnumerable<Type> FindInterfacesThatClose(this Type pluggedType, Type templateType)
     {
         return FindInterfacesThatClosesCore(pluggedType, templateType).Distinct();
     }
-    
+
     public static IEnumerable<Type> FindInterfacesThatClosesCore(Type pluggedType, Type templateType)
     {
         if (pluggedType == null) yield break;
@@ -107,6 +104,7 @@ public static class Extensions
             yield return interfaceType;
         }
     }
+
     public static void Fill<T>(this IList<T> list, T value)
     {
         if (list.Contains(value)) return;

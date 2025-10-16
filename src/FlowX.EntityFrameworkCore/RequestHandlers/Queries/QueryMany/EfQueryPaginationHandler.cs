@@ -38,8 +38,8 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>(
                         requestContext.Request.SortedDirection ?? buildResult.SortedDirectionWhenRequestEmpty);
                 var toModelFinalQueryable = buildResult.SpecialActionToModel.Invoke(toModelQueryable);
                 var toModelResponse = await toModelFinalQueryable
-                    .Offset(requestContext.Request.Skip)
-                    .Limit(requestContext.Request.Take)
+                    .Offset(requestContext.Request.Skip())
+                    .Limit(requestContext.Request.Take())
                     .ToListAsync(requestContext.CancellationToken);
                 var toModelTotalRecord = await toModelFinalQueryable.LongCountAsync(requestContext.CancellationToken);
                 var itemsResponses = toModelResponse.Select(a => buildResult.MapFunc.Invoke(a)).ToList();
@@ -56,8 +56,8 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>(
                         requestContext.Request.SortedDirection ?? buildResult.SortedDirectionWhenRequestEmpty);
                 var finalQueryable = buildResult.SpecialActionToResponse.Invoke(queryable);
                 var response = await finalQueryable
-                    .Offset(requestContext.Request.Skip)
-                    .Limit(requestContext.Request.Take)
+                    .Offset(requestContext.Request.Skip())
+                    .Limit(requestContext.Request.Take())
                     .ToListAsync(requestContext.CancellationToken);
                 var totalRecord = await finalQueryable.LongCountAsync(requestContext.CancellationToken);
                 return new PaginationResponse<TResponse>(response, totalRecord);

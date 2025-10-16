@@ -11,7 +11,7 @@ namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandOne;
 public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
     ISqlRepository<TModel> sqlRepository,
     IUnitOfWork unitOfWork)
-    : ICommandHandler<TCommand, OneOf<TResult, Error>>
+    : ICommandHandler<TCommand, TResult>
     where TModel : class
     where TCommand : class, ICommandResult<TResult>
 {
@@ -21,7 +21,7 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
     protected abstract ICommandOneFlowBuilderResult<TModel, TResult> BuildCommand(
         IStartOneCommandResult<TModel, TResult> fromFlow, IRequestContext<TCommand> commandContext);
 
-    public virtual async Task<OneOf<TResult, Error>> HandleAsync(IRequestContext<TCommand> requestContext)
+    public virtual async Task<TResult> HandleAsync(IRequestContext<TCommand> requestContext)
     {
         var buildResult = BuildCommand(new CommandOneResultFlow<TModel, TResult>(), requestContext);
         var commandType = buildResult.CommandTypeOne;
@@ -29,37 +29,47 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
         switch (commandType)
         {
             case CommandTypeOne.Create:
-                var createItem = await buildResult.ModelCreateFunc.Invoke();
-                var createOneCondition = await buildResult.CommandOneCondition.Invoke(createItem);
-                if (createOneCondition.IsT1) return createOneCondition.AsT1;
-                await SqlRepository.CreateOneAsync(createItem, token: requestContext.CancellationToken);
-                item = createItem;
+                var itemCreating = await buildResult.ModelCreateFunc.Invoke();
+                if (buildResult.CommandConditionResultError is not null)
+                {
+                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemCreating);
+                    throw errorResult;
+                }
+
+                await SqlRepository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
+                item = itemCreating;
                 break;
             case CommandTypeOne.Update:
-                var updateItem = await SqlRepository
+                var itemUpdating = await SqlRepository
                     .GetFirstByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
                         token: requestContext.CancellationToken);
-                var updateManyCondition = await buildResult.CommandOneCondition.Invoke(updateItem);
-                if (updateManyCondition.IsT1) return updateManyCondition.AsT1;
-                await buildResult.UpdateOneFunc.Invoke(updateItem);
-                item = updateItem;
+                if (buildResult.CommandConditionResultError is not null)
+                {
+                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemUpdating);
+                    throw errorResult;
+                }
+
+                await buildResult.UpdateOneFunc.Invoke(itemUpdating);
+                item = itemUpdating;
                 break;
             case CommandTypeOne.Remove:
-                var removeItem = await SqlRepository.GetFirstByConditionAsync(buildResult.CommandFilter,
+                var itemRemoving = await SqlRepository.GetFirstByConditionAsync(buildResult.CommandFilter,
                     buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
-                var removeManyCondition = await buildResult.CommandOneCondition.Invoke(removeItem);
-                if (removeManyCondition.IsT1) return removeManyCondition.AsT1;
-                await SqlRepository.RemoveOneAsync(removeItem, requestContext.CancellationToken);
-                item = removeItem;
+                if (buildResult.CommandConditionResultError is not null)
+                {
+                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemRemoving);
+                    throw errorResult;
+                }
+
+                await SqlRepository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
+                item = itemRemoving;
                 break;
             case CommandTypeOne.Unknown:
             default:
                 throw new UnreachableException($"Command {commandType} does not support!");
         }
 
-        var saveResult = await UnitOfWork.SaveChangesAsync(requestContext.CancellationToken);
-        if (saveResult.IsT1)
-            return buildResult.SaveChangesError;
+        await UnitOfWork.SaveChangesAsync(requestContext.CancellationToken);
         var result = buildResult.ResultFunc.Invoke(item);
         return result;
     }

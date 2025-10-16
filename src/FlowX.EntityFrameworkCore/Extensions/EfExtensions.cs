@@ -24,7 +24,6 @@ public static class EfExtensions
                 FlowXStatics.ModelsFromNamespaceContaining, FlowXStatics.ModelsFilter);
         if (flowXEfCoreRegister.IsDynamicUnitOfWork)
             AddEfUnitOfWorkAsScope<TDbContext>(flowXRegister.ServiceCollection);
-        // AddEfRequestHandlersAsScope(flowXRegister.ServiceCollection);
         return flowXRegister;
     }
 

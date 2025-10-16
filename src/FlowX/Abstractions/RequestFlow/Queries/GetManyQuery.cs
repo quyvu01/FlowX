@@ -8,11 +8,11 @@ public record GetManyQuery(int? PageSize, int? PageIndex, string SortedFieldName
     {
     }
 
-    public int? Skip => (PageIndex, PageSize) switch
+    public int? Skip() => (PageIndex, PageSize) switch
     {
         ({ } pageIndex, { } pageSize) => (pageIndex - 1) * pageSize,
         _ => null
     };
 
-    public int? Take => PageSize;
+    public int? Take() => PageSize;
 }
