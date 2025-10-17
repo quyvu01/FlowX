@@ -23,11 +23,11 @@ internal class NatsServer<TRequest, TResult>(IServiceProvider serviceProvider)
     {
         var natsClient = serviceProvider.GetRequiredService<NatsClientWrapper>();
         var natsScribeAsync = natsClient.NatsClient
-            .SubscribeAsync<NatsMessageWrapper>(typeof(TRequest).GetNatsSubject());
+            .SubscribeAsync<MessageWrapper>(typeof(TRequest).GetNatsSubject());
         await foreach (var message in natsScribeAsync) _ = ProcessMessageAsync(message);
     }
 
-    private async Task ProcessMessageAsync(NatsMsg<NatsMessageWrapper> message)
+    private async Task ProcessMessageAsync(NatsMsg<MessageWrapper> message)
     {
         try
         {
@@ -35,7 +35,7 @@ internal class NatsServer<TRequest, TResult>(IServiceProvider serviceProvider)
             using var scope = serviceProvider.CreateScope();
             var pipeline = scope.ServiceProvider
                 .GetRequiredService<FlowPipelinesImpl<TRequest, TResult>>();
-            var request = JsonSerializer.Deserialize<TRequest>(data.MessageAsString);
+            var request = JsonSerializer.Deserialize<TRequest>(data.MessageJson);
             var headers = message.Headers?
                 .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
             var requestContext = new FlowContext<TRequest>(request, headers, CancellationToken.None);
@@ -43,12 +43,12 @@ internal class NatsServer<TRequest, TResult>(IServiceProvider serviceProvider)
             try
             {
                 var result = await pipeline.ExecuteAsync(requestContext);
-                var response = new NatResponseWrapped<TResult> { Response = result };
+                var response = new MessagingResponseWrapped<TResult> { Response = result };
                 await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, response);
             }
             catch (Exception e)
             {
-                var exceptionAsResponse = new NatResponseWrapped<TResult>
+                var exceptionAsResponse = new MessagingResponseWrapped<TResult>
                 {
                     ExceptionSerializable = ExceptionSerializableWrapper.FromException(e),
                     TypeAssembly = e.GetType().AssemblyQualifiedName

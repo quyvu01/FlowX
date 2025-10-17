@@ -11,6 +11,11 @@ implementing CQRS (Command Query Responsibility Segregation) patterns.
 - Fluent API for building Request Flows.
 - Error handling mechanisms with custom error definitions.
 
+## Notes
+> [!WARNING]  
+> All FlowX* packages need to have the same version.</br>
+> FlowX utilizes System.Text.Json for message serialization and deserialization. Be mindful of this when sending or receiving requests from other services.
+
 ## Getting Started
 
 ### Prerequisites
@@ -82,10 +87,10 @@ public sealed class CreateSomeThingHandler(
 Sample pipeline:
 
 ```csharp
-public sealed class SomeThingPipeline : ISqlPipelineBehavior<GetSomeThingQuery, OneOf<SomeThingResponse, Error>>
+public sealed class SomeThingPipeline : IFlowPipelineBehavior<GetSomeThingQuery, SomeThingResponse>
 {
-    public async Task<OneOf<SomeThingResponse, Error>> HandleAsync(RequestContext<GetSomeThingQuery> requestContext,
-        Func<Task<OneOf<SomeThingResponse, Error>>> next)
+    public async Task<SomeThingResponse> HandleAsync(RequestContext<GetSomeThingQuery> requestContext,
+        Func<Task<SomeThingResponse>> next)
     {
         Console.WriteLine("GetUserPipeline");
         var result = await next.Invoke();
@@ -97,8 +102,8 @@ public sealed class SomeThingPipeline : ISqlPipelineBehavior<GetSomeThingQuery, 
 How to invoke the request:
 
 ```csharp
-var sender = ServiceProvider.GetRequiredService<IFlowXSender>();
-var userResult = await sender.ExecuteAsync(new GetUserQuery("1"));
+var sender = ServiceProvider.GetRequiredService<IFlowX>();
+var userResult = await sender.Send(new GetUserQuery("1"));
 ```
 
 Like the Mediator Pattern, you don't need to care about the handler and how it do. Just ExecuteAsync
@@ -134,10 +139,19 @@ For inquiries, reach out to [FlowX](https://github.com/quyvu01/FlowX).
 
 Happy coding with FlowX!
 
-| Package Name                                                                           | Description                                                                                         | .NET Version | Document                                                                                     |
-|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|--------------|----------------------------------------------------------------------------------------------|
-| [FlowX](https://www.nuget.org/packages/FlowX/)                                         | FlowX core                                                                                          | 8.0, 9.0     | This Document                                                                                |
-| **Data Provider**                                                                      |                                                                                                     |
-| [FlowX.EntityFrameworkCore](https://www.nuget.org/packages/FlowX.EntityFrameworkCore/) | This is the FlowX extension package using EntityFramework to fetch data                             | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.EntityFrameworkCore/README.md) |
-| **Transports**                                                                         |                                                                                                     |
-| [FlowX.Nats](https://www.nuget.org/packages/FlowX.Nats/)                               | FlowX.Nats is an extension package for FlowX that leverages Nats for efficient data transportation. | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.Nats/README.md)                |
+| Package Name                                                 | Description                                                                                                                 | .NET Version | Document                                                                                     |
+|--------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|--------------|----------------------------------------------------------------------------------------------|
+| [FlowX][FlowX.nuget]                                         | FlowX core                                                                                                                  | 8.0, 9.0     | This Document                                                                                |
+| **Data Provider**                                            |                                                                                                                             |
+| [FlowX.EntityFrameworkCore][FlowX.EntityFrameworkCore.nuget] | This is the FlowX extension package using EntityFramework to fetch data                                                     | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.EntityFrameworkCore/README.md) |
+| **Transports**                                               |                                                                                                                             |
+| [FlowX.Nats][FlowX.Nats.nuget]                               | FlowX.Nats is an extension package for FlowX that leverages Nats for efficient data transportation.                         | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.Nats/README.md)                |
+| [FlowX.Azure.ServiceBus][FlowX.Azure.ServiceBus.nuget]       | FlowX.Azure.ServiceBus is an extension package for FlowX that leverages Azure ServiceBus for efficient data transportation. | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.Azure.ServiceBus/README.md)    |
+
+[FlowX.nuget]: https://www.nuget.org/packages/FlowX/
+
+[FlowX.EntityFrameworkCore.nuget]: https://www.nuget.org/packages/FlowX.EntityFrameworkCore/
+
+[FlowX.Nats.nuget]: https://www.nuget.org/packages/FlowX.Nats/
+
+[FlowX.Azure.ServiceBus.nuget]: https://www.nuget.org/packages/FlowX.Azure.ServiceBus/

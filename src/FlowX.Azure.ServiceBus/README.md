@@ -1,6 +1,7 @@
-# FlowX.Nats
+# FlowX.Azure.ServiceBus
 
-FlowX.Nats is an extension package for FlowX that integrates with NATS.io, providing a seamless way to handle
+FlowX.Azure.ServiceBus is an extension package for FlowX that integrates with Azure ServiceBus, providing a seamless way
+to handle
 message-based communication using FlowX’s Request Flow patterns. This package is ideal for distributed applications that
 require reliable event-driven architecture.
 
@@ -8,7 +9,7 @@ require reliable event-driven architecture.
 
 ## Features
 
-- Enables communication via NATS in FlowX.
+- Enables communication via Azure ServiceBus in FlowX.
 - Supports request-response and event-driven patterns.
 - Leverages FlowX’s fluent API for seamless integration.
 
@@ -25,18 +26,18 @@ Ensure you have the following installed:
 To install the FlowX package, use the following NuGet command:
 
 ```bash
-dotnet add package FlowX.Nats
+dotnet add package FlowX.Azure.ServiceBus
 ```
 
 Or via the NuGet Package Manager:
 
 ```bash
-Install-Package FlowX.Nats
+Install-Package FlowX.Azure.ServiceBus
 ```
 
 ## Usage
 
-### 1. Register FlowX.Nats in the Dependency Injection Container
+### 1. Register FlowX.Azure.ServiceBus in the Dependency Injection Container
 
 Add FlowX.Nats to your service configuration:
 
@@ -50,15 +51,16 @@ builder.Services.AddFlowX(options =>
         opts.AddDynamicRepositories();
         opts.AddDynamicUnitOfWork();
     });
-    options.AddNats(config => config.Url("nats://localhost:4222"));
+options.AddAzureServiceBus(cfg => cfg.Host("SensitiveConnectionString"));
 });
 ```
 
 #### Method descriptions
 
-`AddNats`: Add Nats config, you have to locate the nats `Url`, you can also config the Prefix for Nats.
+`AddAzureServiceBus`: Add AddAzureServiceBus config, you have to locate the host `Url`, you can also config the Prefix
+for AzureServiceBus.
 
-### 2. Sending Requests via NATS
+### 2. Sending Requests via Azure ServiceBus
 
 ```csharp
 var sender = ServiceProvider.GetRequiredService<IFlowXSender>();
@@ -76,8 +78,9 @@ Enjoy your moment!
 | **Data Provider**                                            |                                                                                                                             |
 | [FlowX.EntityFrameworkCore][FlowX.EntityFrameworkCore.nuget] | This is the FlowX extension package using EntityFramework to fetch data                                                     | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.EntityFrameworkCore/README.md) |
 | **Transports**                                               |                                                                                                                             |
-| [FlowX.Nats][FlowX.Nats.nuget]                               | FlowX.Nats is an extension package for FlowX that leverages Nats for efficient data transportation.                         | 8.0, 9.0     | This Document                                                                                |
-| [FlowX.Azure.ServiceBus][FlowX.Azure.ServiceBus.nuget]       | FlowX.Azure.ServiceBus is an extension package for FlowX that leverages Azure ServiceBus for efficient data transportation. | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.Azure.ServiceBus/README.md)    |
+| [FlowX.Nats][FlowX.Nats.nuget]                               | FlowX.Nats is an extension package for FlowX that leverages Nats for efficient data transportation.                         | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.Nats/README.md)                |
+| [FlowX.Azure.ServiceBus][FlowX.Azure.ServiceBus.nuget]       | FlowX.Azure.ServiceBus is an extension package for FlowX that leverages Azure ServiceBus for efficient data transportation. | 8.0, 9.0     | This Document                                                                                |
+
 
 [FlowX.nuget]: https://www.nuget.org/packages/FlowX/
 

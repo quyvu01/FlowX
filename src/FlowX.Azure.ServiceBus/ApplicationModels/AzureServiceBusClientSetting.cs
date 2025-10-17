@@ -1,0 +1,17 @@
+using FlowX.Azure.ServiceBus.Statics;
+
+namespace FlowX.Azure.ServiceBus.ApplicationModels;
+
+public sealed class AzureServiceBusClientSetting
+{
+    public string ConnectionString { get; private set; }
+
+    public void Host(string connectionString) => ConnectionString = connectionString;
+    public void TopicPrefix(string topicPrefix) => AzureServiceBusStatic.TopicPrefix = topicPrefix;
+
+    public void MaxConcurrentSessions(int maxConcurrentSessions)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxConcurrentSessions, 1);
+        AzureServiceBusStatic.MaxConcurrentSessions = maxConcurrentSessions;
+    }
+}
