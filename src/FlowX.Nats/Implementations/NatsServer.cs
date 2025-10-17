@@ -50,7 +50,7 @@ internal class NatsServer<TRequest, TResult>(IServiceProvider serviceProvider)
             {
                 var exceptionAsResponse = new NatResponseWrapped<TResult>
                 {
-                    ExceptionSerializable = ExceptionSerializable.FromException(e),
+                    ExceptionSerializable = ExceptionSerializableWrapper.FromException(e),
                     TypeAssembly = e.GetType().AssemblyQualifiedName
                 };
                 await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, exceptionAsResponse);
