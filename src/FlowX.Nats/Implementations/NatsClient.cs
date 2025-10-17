@@ -25,6 +25,6 @@ internal sealed class NatsClient<TRequest, TResult>(NatsClientWrapper client)
         if (result is null) throw new ArgumentNullException(nameof(result));
         return result.TypeAssembly is null
             ? result.Response
-            : throw ExceptionSerializable.ToException(result.ExceptionSerializable);
+            : throw ExceptionSerializableWrapper.ToException(result.ExceptionSerializable);
     }
 }

@@ -22,4 +22,13 @@ public sealed class UserController(IFlow sender) : ControllerBase
         var result = await sender.Send(query, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetUserAsObject([FromQuery] GetUserQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        object queryAsObject = query;
+        var result = await sender.Send(queryAsObject, cancellationToken);
+        return Ok(result);
+    }
 }
