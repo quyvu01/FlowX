@@ -1,4 +1,4 @@
-# This workflow will build and publish all OfX ecosystem packages when the version changes.
+# This workflow will build and publish all FlowX ecosystem packages when the version changes.
 
 name: Build FlowX and Publish
 env:
