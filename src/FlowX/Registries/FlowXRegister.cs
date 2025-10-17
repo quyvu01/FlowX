@@ -13,4 +13,10 @@ public class FlowXRegister(IServiceCollection serviceCollection)
 
     public void AddHandlersFromNamespaceContaining<TAssemblyMarker>() =>
         FlowXStatics.HandlersFromNamespaceContaining = typeof(TAssemblyMarker).Assembly;
+    
+    public void SetRequestTimeOut(TimeSpan timeout)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(timeout, TimeSpan.Zero);
+        FlowXStatics.DefaultRequestTimeout = timeout;
+    }
 }

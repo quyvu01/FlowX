@@ -16,11 +16,11 @@ internal sealed class NatsClient<TRequest, TResult>(NatsClientWrapper client)
     {
         var natsHeaders = new NatsHeaders();
         requestContext.Headers?.ForEach(h => natsHeaders.Add(h.Key, h.Value));
-        var natsMessageWrapped = new NatsMessageWrapper
-            { MessageAsString = JsonSerializer.Serialize(requestContext.Request) };
+        var messageWrapped = new MessageWrapper
+            { MessageJson = JsonSerializer.Serialize(requestContext.Request) };
         var reply = await client.NatsClient
-            .RequestAsync<NatsMessageWrapper, NatResponseWrapped<TResult>>(typeof(TRequest).GetNatsSubject(),
-                natsMessageWrapped, natsHeaders, cancellationToken: requestContext.CancellationToken);
+            .RequestAsync<MessageWrapper, MessagingResponseWrapped<TResult>>(typeof(TRequest).GetNatsSubject(),
+                messageWrapped, natsHeaders, cancellationToken: requestContext.CancellationToken);
         var result = reply.Data;
         if (result is null) throw new ArgumentNullException(nameof(result));
         return result.TypeAssembly is null

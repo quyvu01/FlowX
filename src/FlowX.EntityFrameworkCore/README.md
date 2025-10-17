@@ -154,11 +154,19 @@ For inquiries, reach out to [your email or GitHub link].
 
 Enjoy your moment!
 
-| Package Name                                                                           | Description                                                                                         | .NET Version | Document                                                                                     |
-|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|--------------|----------------------------------------------------------------------------------------------|
-| [FlowX](https://www.nuget.org/packages/FlowX/)                                         | FlowX core                                                                                          | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.EntityFrameworkCore/README.md) |
-| **Data Provider**                                                                      |                                                                                                     |
-| [FlowX.EntityFrameworkCore](https://www.nuget.org/packages/FlowX.EntityFrameworkCore/) | This is the FlowX extension package using EntityFramework to fetch data                             | 8.0, 9.0     | This Document                                                                                |
-| **Transports**                                                                         |                                                                                                     |
-| [FlowX.Nats](https://www.nuget.org/packages/FlowX.Nats/)                               | FlowX.Nats is an extension package for FlowX that leverages Nats for efficient data transportation. | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.Nats/README.md)                |
+| Package Name                                                 | Description                                                                                                                 | .NET Version | Document                                                                                  |
+|--------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|--------------|-------------------------------------------------------------------------------------------|
+| [FlowX][FlowX.nuget]                                         | FlowX core                                                                                                                  | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/README.md)                            |
+| **Data Provider**                                            |                                                                                                                             |
+| [FlowX.EntityFrameworkCore][FlowX.EntityFrameworkCore.nuget] | This is the FlowX extension package using EntityFramework to fetch data                                                     | 8.0, 9.0     | This Document                                                                             |
+| **Transports**                                               |                                                                                                                             |
+| [FlowX.Nats][FlowX.Nats.nuget]                               | FlowX.Nats is an extension package for FlowX that leverages Nats for efficient data transportation.                         | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.Nats/README.md)             |
+| [FlowX.Azure.ServiceBus][FlowX.Azure.ServiceBus.nuget]       | FlowX.Azure.ServiceBus is an extension package for FlowX that leverages Azure ServiceBus for efficient data transportation. | 8.0, 9.0     | [ReadMe](https://github.com/quyvu01/FlowX/blob/main/src/FlowX.Azure.ServiceBus/README.md) |
 
+[FlowX.nuget]: https://www.nuget.org/packages/FlowX/
+
+[FlowX.EntityFrameworkCore.nuget]: https://www.nuget.org/packages/FlowX.EntityFrameworkCore/
+
+[FlowX.Nats.nuget]: https://www.nuget.org/packages/FlowX.Nats/
+
+[FlowX.Azure.ServiceBus.nuget]: https://www.nuget.org/packages/FlowX.Azure.ServiceBus/

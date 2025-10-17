@@ -1,8 +1,6 @@
-using FlowX.Wrappers;
+namespace FlowX.Wrappers;
 
-namespace FlowX.Nats.Wrappers;
-
-public sealed class NatResponseWrapped<TResponse>
+public sealed class MessagingResponseWrapped<TResponse>
 {
     public string TypeAssembly { get; set; }
     public TResponse Response { get; set; }
