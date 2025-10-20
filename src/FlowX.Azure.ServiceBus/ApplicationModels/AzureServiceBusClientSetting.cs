@@ -1,3 +1,4 @@
+using Azure.Messaging.ServiceBus;
 using FlowX.Azure.ServiceBus.Statics;
 
 namespace FlowX.Azure.ServiceBus.ApplicationModels;
@@ -6,7 +7,16 @@ public sealed class AzureServiceBusClientSetting
 {
     public string ConnectionString { get; private set; }
 
-    public void Host(string connectionString) => ConnectionString = connectionString;
+    public ServiceBusClientOptions ServiceBusClientOptions { get; private set; }
+
+    public void Host(string connectionString, Action<ServiceBusClientOptions> serviceBusClientOptions = null)
+    {
+        ConnectionString = connectionString;
+        if (serviceBusClientOptions == null) return;
+        var options = new ServiceBusClientOptions();
+        serviceBusClientOptions.Invoke(options);
+        ServiceBusClientOptions = options;
+    }
     public void TopicPrefix(string topicPrefix) => AzureServiceBusStatic.TopicPrefix = topicPrefix;
 
     public void MaxConcurrentSessions(int maxConcurrentSessions)
