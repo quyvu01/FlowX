@@ -3,7 +3,6 @@ using FlowX.Nats.Abstractions;
 using FlowX.Nats.ApplicationModels;
 using FlowX.Nats.BackgroundServices;
 using FlowX.Nats.Implementations;
-using FlowX.Nats.Statics;
 using FlowX.Nats.Wrappers;
 using FlowX.Registries;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,10 +16,15 @@ public static class NatsExtensions
     {
         var newClientsRegister = new NatsClientHost();
         options.Invoke(newClientsRegister);
-        flowXRegister.ServiceCollection.AddSingleton(_ => new NatsClientWrapper(new NatsClient(NatsStatics.NatsUrl)));
+        var opts = newClientsRegister.NatsOptions;
+        var natsUrl = newClientsRegister.NatsUrl;
+        flowXRegister.ServiceCollection.AddSingleton(_ => opts != null
+            ? new NatsClientWrapper(new NatsClient(opts))
+            : new NatsClientWrapper(new NatsClient(natsUrl)));
+
         ClientsRegister(flowXRegister.ServiceCollection);
         flowXRegister.ServiceCollection.AddScoped<ITransportService, NatsTransportService>();
-        
+
         flowXRegister.ServiceCollection.AddSingleton(typeof(INatsServer<,>), typeof(NatsServer<,>));
         flowXRegister.ServiceCollection.AddHostedService<NatsServerWorker>();
     }
