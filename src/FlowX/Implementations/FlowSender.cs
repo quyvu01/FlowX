@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Linq.Expressions;
 using FlowX.Abstractions;
 using FlowX.Exceptions;
 using FlowX.Externals;
@@ -8,55 +9,55 @@ namespace FlowX.Implementations;
 
 internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
 {
-    private static readonly ConcurrentDictionary<Type, RequestHandlerWrapperBase> _RequestHandlerWrapperBases = new();
+    private static readonly ConcurrentDictionary<Type, Func<RequestHandlerWrapperBase>> _requestHandlers =
+        new();
 
     public async Task<TResult> Send<TResult>(IRequest<TResult> request, CancellationToken cancellationToken = default)
-    {
-        var result = await Send(request, new FlowXContext([], cancellationToken)).ConfigureAwait(false);
-        return result;
-    }
+        => await Send(request, new FlowXContext([], cancellationToken)).ConfigureAwait(false);
 
     public async Task<object> Send(object request, CancellationToken cancellationToken = default)
-    {
-        var result = await Send(request, new FlowXContext([], cancellationToken)).ConfigureAwait(false);
-        return result;
-    }
+        => await Send(request, new FlowXContext([], cancellationToken)).ConfigureAwait(false);
 
     private async Task<TResult> Send<TResult>(IRequest<TResult> request, FlowXContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var handler = (RequestHandlerWrapper<TResult>)_RequestHandlerWrapperBases.GetOrAdd(request.GetType(),
-            static requestType =>
-            {
-                var wrapperType = typeof(RequestHandlerWrapperImpl<,>).MakeGenericType(requestType, typeof(TResult));
-                var wrapper = Activator.CreateInstance(wrapperType) ??
-                              throw new InvalidOperationException($"Could not create wrapper type for {requestType}");
-                return (RequestHandlerWrapperBase)wrapper;
-            });
+        var func = _requestHandlers.GetOrAdd(request.GetType(), static requestType =>
+        {
+            var wrapperType = typeof(RequestHandlerWrapperImpl<,>).MakeGenericType(requestType, typeof(TResult));
+            var ctor = wrapperType.GetConstructor(Type.EmptyTypes);
+            ArgumentNullException.ThrowIfNull(ctor);
+            var exp = Expression
+                .Lambda<Func<RequestHandlerWrapperBase>>(Expression.New(ctor)).Compile();
+            return exp;
+        });
 
-        return await handler.HandleAsync(request, serviceProvider,
+        var requestHandlerWrapper = (RequestHandlerWrapper<TResult>)func.Invoke();
+
+        return await requestHandlerWrapper.HandleAsync(request, serviceProvider,
             context?.CancellationToken ?? CancellationToken.None);
     }
 
     private async Task<object> Send(object request, FlowXContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var requestType = request.GetType();
-        if (request is not IRequestBase) throw new FlowXExceptions.RequestIsNotRequestBase(requestType);
-        var handlerWrapper = _RequestHandlerWrapperBases.GetOrAdd(requestType, rq =>
+        if (request is not IRequestBase) throw new FlowXExceptions.RequestIsNotRequestBase(request.GetType());
+        var handlerWrapper = _requestHandlers.GetOrAdd(request.GetType(), static rq =>
         {
             var interfaceType = rq
                 .GetInterfaces()
                 .FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRequest<>));
-            if (interfaceType is null) throw new FlowXExceptions.RequestIsNotRequestBase(requestType);
+            if (interfaceType is null) throw new FlowXExceptions.RequestIsNotRequestBase(rq);
             var responseType = interfaceType.GetGenericArguments()[0];
-            var wrapperType = typeof(RequestHandlerWrapperImpl<,>).MakeGenericType(requestType, responseType);
-            var wrapper = Activator.CreateInstance(wrapperType) ??
-                          throw new InvalidOperationException($"Could not create wrapper for type {requestType}");
-            return (RequestHandlerWrapperBase)wrapper;
+            var wrapperType = typeof(RequestHandlerWrapperImpl<,>).MakeGenericType(rq, responseType);
+            var ctor = wrapperType.GetConstructor(Type.EmptyTypes);
+            ArgumentNullException.ThrowIfNull(ctor);
+            var exp = Expression
+                .Lambda<Func<RequestHandlerWrapperBase>>(Expression.New(ctor)).Compile();
+            return exp;
         });
 
-        return await handlerWrapper.HandleAsync(request, serviceProvider,
+        var handler = handlerWrapper.Invoke();
+        return await handler.HandleAsync(request, serviceProvider,
             context?.CancellationToken ?? CancellationToken.None);
     }
 }
