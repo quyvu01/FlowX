@@ -2,7 +2,7 @@
 
 name: Build FlowX and Publish
 env:
-  OFX_VERSION: 6.0.5
+  FLOWX_VERSION: 6.0.5
 
 on:
   push:
@@ -36,9 +36,9 @@ jobs:
       - id: v
         run: |
           if [ "${{ github.ref }}" = 'refs/heads/main' ]; then
-            echo "version=${OFX_VERSION}" >> $GITHUB_OUTPUT
+            echo "version=${FLOWX_VERSION}" >> $GITHUB_OUTPUT
           else
-            echo "version=${OFX_VERSION}-develop.${{ github.run_number }}" >> $GITHUB_OUTPUT
+            echo "version=${FLOWX_VERSION}-develop.${{ github.run_number }}" >> $GITHUB_OUTPUT
           fi
   
   publish:
