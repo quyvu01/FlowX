@@ -28,7 +28,7 @@ Framework Core.
 Ensure you have the following installed:
 
 - .NET 8.0 or higher
-- Entity Framework Core
+- Microsoft.EntityFrameworkCore
 - FlowX
 
 ### Installation
@@ -97,7 +97,7 @@ public class UpdateSomeThingHandler(
             .UpdateOne(x => x.Id == command.Id)
             .WithSpecialAction(null)
             .WithCondition(_ => None.Value)
-            .WithModify(SomeThing => Mapper.Map(command, SomeThing))
+            .WithModify(someModel => Mapper.Map(command, someModel))
             .WithErrorIfNull(MasterDataErrorDetail.SomeThingError.NotFound())
             .WithErrorIfSaveChange(SomeErrorDetail());
 }

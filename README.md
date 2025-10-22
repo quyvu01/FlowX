@@ -50,7 +50,7 @@ builder.Services.AddFlowX(cfg =>
 {
     cfg.AddModelsFromNamespaceContaining<ITestAssemblyMarker>();
     cfg.AddHandlersFromNamespaceContaining<ITestAssemblyMarker>();
-    cfg.AddSqlPipelines(c => c.OfType<SomeThingPipeline>(serviceLifetime));
+    cfg.AddPipelines(c => c.OfType<SomeThingPipeline>(serviceLifetime));
 });
 
 ```
@@ -102,7 +102,7 @@ public sealed class SomeThingPipeline : IFlowPipelineBehavior<GetSomeThingQuery,
 How to invoke the request:
 
 ```csharp
-var sender = ServiceProvider.GetRequiredService<IFlowX>();
+var sender = ServiceProvider.GetRequiredService<IFlow>();
 var userResult = await sender.Send(new GetUserQuery("1"));
 ```
 
@@ -112,7 +112,7 @@ Like the Mediator Pattern, you don't need to care about the handler and how it d
 
 ### Request Flows
 
-FlowX enables the creation of requests in a structured and intuitive way. Each flow defines a step-by-step process that
+Flow enables the creation of requests in a structured and intuitive way. Each flow defines a step-by-step process that
 ensures reliability and maintainability.
 
 #### Error Handling
