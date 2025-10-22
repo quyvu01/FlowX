@@ -20,6 +20,7 @@ require reliable event-driven architecture.
 Ensure you have the following installed:
 
 - .NET 8.0 or higher
+- Azure.Messaging.ServiceBus
 
 ### Installation
 
@@ -63,8 +64,8 @@ for AzureServiceBus.
 ### 2. Sending Requests via Azure ServiceBus
 
 ```csharp
-var sender = ServiceProvider.GetRequiredService<IFlowXSender>();
-var response = await sender.Send(new GetProvince("1"));
+var sender = ServiceProvider.GetRequiredService<IFlow>();
+var response = await sender.Send(new GetProvinces());
 ```
 
 Acts as `FlowX`, you don't need to care about the behind the scene. FlowX handle the RPC request for you!
