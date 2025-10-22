@@ -37,6 +37,7 @@ public static class FlowXExtensions
             });
         serviceCollection.AddTransient(typeof(IRequestHandler<,>), typeof(DefaultRequestHandler<,>));
         newFlowXRegister.AddPipelines(c => c
+            .OfType(typeof(RetryPipelineBehavior<,>))
             .OfType(typeof(TransportPipeline<,>))
             .OfType(typeof(PagedPipeline<,>))
         );

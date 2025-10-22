@@ -43,9 +43,10 @@ internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
         if (request is not IRequestBase) throw new FlowXExceptions.RequestIsNotRequestBase(request.GetType());
         var handlerWrapper = _requestHandlers.GetOrAdd(request.GetType(), static rq =>
         {
-            var interfaceType = rq
-                .GetInterfaces()
-                .FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRequest<>));
+            var interfaces = rq.GetInterfaces()
+                .Where(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRequest<>)).ToList();
+            if (interfaces.Count > 1) throw new FlowXExceptions.AmbiguousRequestType(rq);
+            var interfaceType = interfaces.FirstOrDefault();
             if (interfaceType is null) throw new FlowXExceptions.RequestIsNotRequestBase(rq);
             var responseType = interfaceType.GetGenericArguments()[0];
             var wrapperType = typeof(RequestHandlerWrapperImpl<,>).MakeGenericType(rq, responseType);
