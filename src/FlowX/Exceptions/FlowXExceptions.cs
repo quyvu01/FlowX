@@ -2,9 +2,16 @@ namespace FlowX.Exceptions;
 
 public static class FlowXExceptions
 {
-    public sealed class PipelineIsNotPipelineBehavior(Type type) :
-        Exception($"The input pipeline: {type.Name} is not matched with Pipeline. Please check again!");
+    public sealed class PipelineIsNotPipelineBehavior(Type type)
+        : Exception(
+            $"Invalid pipeline type detected: {type.FullName}. The specified type must implement IPipelineBehavior<> to be used as part of the processing pipeline.");
 
-    public sealed class RequestIsNotRequestBase(Type requestType) :
-        Exception($"Request is not IRequestBase: {requestType.Name}!");
+    public sealed class RequestIsNotRequestBase(Type requestType)
+        : Exception(
+            $"Invalid request type: {requestType.FullName}. All requests must implement IRequestBase to be recognized by the request processing system.");
+
+
+    public sealed class AmbiguousRequestType(Type requestType)
+        : Exception(
+            $"Ambiguous request type detected: {requestType.FullName}. A single class cannot implement multiple IRequest<> interfaces.");
 }
