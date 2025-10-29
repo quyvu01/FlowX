@@ -2,7 +2,7 @@
 
 name: Build FlowX and Publish
 env:
-  FLOWX_VERSION: 6.0.5
+  FLOWX_VERSION: 6.0.6
 
 on:
   push:
