@@ -3,7 +3,7 @@ using FlowX.Abstractions;
 namespace FlowX.Implementations;
 
 public class FlowPipelinesImpl<TRequest, TResult>(
-    IEnumerable<IFlowPipelineBehavior<TRequest, TResult>> behaviors,
+    IEnumerable<IPipelineBehavior<TRequest, TResult>> behaviors,
     IRequestHandler<TRequest, TResult> handler)
     where TRequest : IRequest<TResult>
 {

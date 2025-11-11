@@ -12,7 +12,7 @@ namespace FlowX.Internals;
 /// <typeparam name="TRequest"></typeparam>
 /// <typeparam name="TResult"></typeparam>
 internal sealed class TransportPipeline<TRequest, TResult>(IServiceProvider serviceProvider)
-    : IFlowPipelineBehavior<TRequest, TResult> where TRequest : IRequest<TResult>
+    : IPipelineBehavior<TRequest, TResult> where TRequest : IRequest<TResult>
 {
     public async Task<TResult> HandleAsync(IRequestContext<TRequest> requestXContext, Func<Task<TResult>> next)
     {

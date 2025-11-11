@@ -1,6 +1,5 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandOneFlow;
-using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandOne;
 using FlowX.Errors;
 using FlowX.Structs;
@@ -9,8 +8,7 @@ using Service1.Models;
 
 namespace Service1.Handlers;
 
-public sealed class CreateUserHandler(ISqlRepository<User> sqlRepository, IUnitOfWork unitOfWork)
-    : EfCommandOneVoidHandler<User, CreateUserCommand>(sqlRepository, unitOfWork)
+public sealed class CreateUserHandler : EfCommandOneVoidHandler<User, CreateUserCommand>
 {
     protected override ICommandOneFlowBuilderVoid<User> BuildCommand(IStartOneCommandVoid<User> fromFlow,
         IRequestContext<CreateUserCommand> commandContext)

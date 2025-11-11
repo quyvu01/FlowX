@@ -1,6 +1,5 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryOneFlow;
-using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryOne;
 using FlowX.Errors;
 using Service2.Contracts.Requests;
@@ -9,8 +8,7 @@ using Service2.Models;
 
 namespace Service2.Handlers;
 
-public sealed class GetProvinceHandler(ISqlRepository<Province> sqlRepository)
-    : EfQueryOneHandler<Province, GetProvinceQuery, ProvinceResponse>(sqlRepository)
+public sealed class GetProvinceHandler : EfQueryOneHandler<Province, GetProvinceQuery, ProvinceResponse>
 {
     protected override IQueryOneFlowBuilder<Province, ProvinceResponse> BuildQueryFlow(
         IQueryOneFilter<Province, ProvinceResponse> fromFlow, IRequestContext<GetProvinceQuery> queryContext)

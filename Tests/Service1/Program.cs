@@ -22,20 +22,10 @@ builder.Services.AddDbContextPool<Service1DbContext>(options => options.UseNpgsq
 
 builder.Services.AddFlowX(options =>
 {
-    options.AddModelsFromNamespaceContaining<IAssemblyMarker>();
     options.AddHandlersFromNamespaceContaining<IAssemblyMarker>();
-    options.SetRetryPolicy(3, _ => TimeSpan.FromSeconds(2), (ex, _, _) =>
-    {
-        Console.WriteLine(ex.Message);
-        return Task.CompletedTask;
-    });
-    options.AddDbContextDynamic<Service1DbContext>(opts =>
-    {
-        opts.AddDynamicRepositories();
-        opts.AddDynamicUnitOfWork();
-    });
     options.AddNats(config => config.Url("nats://localhost:4222"));
-});
+})
+.AddEfCore(c => c.AddDbContexts(typeof(Service1DbContext)));
 
 builder.Services.AddControllers();
 

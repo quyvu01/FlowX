@@ -7,7 +7,7 @@ using FlowX.Wrappers;
 
 namespace FlowX.Implementations;
 
-internal sealed class FlowSender(IServiceProvider serviceProvider) : IFlow
+internal sealed class MediatorSender(IServiceProvider serviceProvider) : IMediator
 {
     private static readonly ConcurrentDictionary<Type, Func<RequestHandlerWrapperBase>> _requestHandlers =
         new();

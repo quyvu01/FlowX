@@ -4,32 +4,32 @@ using FlowX.Abstractions.RequestFlow.Queries;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 using FlowX.EntityFrameworkCore.Abstractions;
+using FlowX.EntityFrameworkCore.SharedStates;
 using FlowX.Extensions;
 using FlowX.Responses;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryMany;
 
-public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>(
-    ISqlRepository<TModel> sqlRepository)
+public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>
     : IQueryHandler<TQuery, PaginationResponse<TResponse>>
     where TModel : class
     where TQuery : GetManyQuery, IQueryPaged<TResponse>
     where TResponse : class
 {
-    protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
-
     protected abstract IQueryListFlowBuilder<TModel, TResponse> BuildQueryFlow(
         IQueryListFilter<TModel, TResponse> fromFlow, IRequestContext<TQuery> queryContext);
 
     public virtual async Task<PaginationResponse<TResponse>> HandleAsync(IRequestContext<TQuery> requestContext)
     {
+        var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
+        var repository = unitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
         switch (buildResult.QuerySpecialActionType)
         {
             case QuerySpecialActionType.ToModel:
             {
-                var toModelSrcQueryable = SqlRepository
+                var toModelSrcQueryable = repository
                     .GetQueryable(buildResult.Filter)
                     .AsNoTracking();
                 var toModelQueryable = toModelSrcQueryable
@@ -46,7 +46,7 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>(
                 return new PaginationResponse<TResponse>(itemsResponses, toModelTotalRecord);
             }
             case QuerySpecialActionType.ToTarget:
-                var srcQueryable = SqlRepository
+                var srcQueryable = repository
                     .GetQueryable(buildResult.Filter)
                     .AsNoTracking();
 

@@ -3,24 +3,24 @@ using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandManyFlow;
 using FlowX.EntityFrameworkCore.Abstractions;
+using FlowX.EntityFrameworkCore.SharedStates;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandMany;
 
-public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>(
-    ISqlRepository<TModel> sqlRepository,
-    IUnitOfWork unitOfWork)
+public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>
     : ICommandHandler<TCommand, TResult>
     where TModel : class
     where TCommand : class, ICommandResult<TResult>
 {
-    protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
-    protected IUnitOfWork UnitOfWork { get; } = unitOfWork;
+    public IUnitOfWork UnitOfWork { get; } = EfCoreSharedStates.GetUnitOfWork();
 
     protected abstract ICommandManyFlowBuilderResult<TModel, TResult> BuildCommand(
         IStartManyCommandResult<TModel, TResult> fromFlow, IRequestContext<TCommand> commandContext);
 
     public virtual async Task<TResult> HandleAsync(IRequestContext<TCommand> requestContext)
     {
+        var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
+        var repository = EfCoreSharedStates.GetUnitOfWork().RepositoryOf<TModel>();
         var buildResult = BuildCommand(new CommandManyResultFlow<TModel, TResult>(), requestContext);
         var commandType = buildResult.CommandTypeMany;
         List<TModel> items;
@@ -34,11 +34,11 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>(
                     throw errorResult;
                 }
 
-                await SqlRepository.CreateManyAsync(itemsCreating, token: requestContext.CancellationToken);
+                await repository.CreateManyAsync(itemsCreating, token: requestContext.CancellationToken);
                 items = itemsCreating;
                 break;
             case CommandTypeMany.Update:
-                var itemsUpdating = await SqlRepository
+                var itemsUpdating = await repository
                     .GetManyByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
                         token: requestContext.CancellationToken);
                 if (buildResult.CommandConditionResultError is not null)
@@ -51,7 +51,7 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>(
                 items = itemsUpdating;
                 break;
             case CommandTypeMany.Remove:
-                var itemsRemoving = await SqlRepository.GetManyByConditionAsync(buildResult.CommandFilter,
+                var itemsRemoving = await repository.GetManyByConditionAsync(buildResult.CommandFilter,
                     buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
                 if (buildResult.CommandConditionResultError is not null)
                 {
@@ -59,7 +59,7 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>(
                     throw errorResult;
                 }
 
-                await SqlRepository.RemoveManyAsync(itemsRemoving, requestContext.CancellationToken);
+                await repository.RemoveManyAsync(itemsRemoving, requestContext.CancellationToken);
                 items = itemsRemoving;
                 break;
             case CommandTypeMany.Unknown:

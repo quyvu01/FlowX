@@ -1,10 +1,8 @@
-using FlowX.Abstractions;
 using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.EntityFrameworkCore.Extensions;
 using FlowX.Extensions;
 using FlowX.Tests.DbContexts;
 using FlowX.Tests.Models;
-using FlowX.Tests.Requests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -20,16 +18,9 @@ public class FlowXEfCoreTest : ServicesBuilding
                     .UseInMemoryDatabase($"Test_{Guid.NewGuid()}")))
             .InstallService((serviceCollection, _) =>
             {
-                serviceCollection.AddFlowX(cfg =>
-                {
-                    cfg.AddModelsFromNamespaceContaining<ITestAssemblyMarker>();
-                    cfg.AddHandlersFromNamespaceContaining<ITestAssemblyMarker>();
-                    cfg.AddDbContextDynamic<TestDbContext>(options =>
-                    {
-                        options.AddDynamicRepositories();
-                        options.AddDynamicUnitOfWork();
-                    });
-                });
+                serviceCollection
+                    .AddFlowX(cfg => cfg.AddHandlersFromNamespaceContaining<ITestAssemblyMarker>())
+                    .AddEfCore(c => c.AddDbContexts(typeof(TestDbContext)));
             })
             .InstallAllServices();
         var dbContext = ServiceProvider.GetRequiredService<TestDbContext>();
@@ -40,7 +31,7 @@ public class FlowXEfCoreTest : ServicesBuilding
     [Fact]
     public async Task Users_Counting_Should_Be_Equals_Static_Counting()
     {
-        var userRepository = ServiceProvider.GetRequiredService<ISqlRepository<User>>();
+        var userRepository = ServiceProvider.GetRequiredService<IRepository<User>>();
         var userCounting = await userRepository.CountByConditionAsync();
         Assert.Equal(StaticData.StaticDataTest.Users.Count, userCounting);
     }
@@ -51,7 +42,7 @@ public class FlowXEfCoreTest : ServicesBuilding
     [InlineData("3")]
     public async Task User_Filtered_Should_Have_The_Result(string userId)
     {
-        var userRepository = ServiceProvider.GetRequiredService<ISqlRepository<User>>();
+        var userRepository = ServiceProvider.GetRequiredService<IRepository<User>>();
         var user = await userRepository.GetFirstByConditionAsync(x => x.Id == userId);
         Assert.NotNull(user);
     }
@@ -61,7 +52,7 @@ public class FlowXEfCoreTest : ServicesBuilding
     [InlineData("5")]
     public async Task User_Filtered_Should_Not_Be_Found(string userId)
     {
-        var userRepository = ServiceProvider.GetRequiredService<ISqlRepository<User>>();
+        var userRepository = ServiceProvider.GetRequiredService<IRepository<User>>();
         var user = await userRepository.GetFirstByConditionAsync(x => x.Id == userId);
         Assert.Null(user);
     }
@@ -69,7 +60,7 @@ public class FlowXEfCoreTest : ServicesBuilding
     [Fact]
     public async Task User_Should_Be_Created()
     {
-        var userRepository = ServiceProvider.GetRequiredService<ISqlRepository<User>>();
+        var userRepository = ServiceProvider.GetRequiredService<IRepository<User>>();
         var unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
         var newUser = new User { Id = "4", Name = "Some one like you!", Email = "abc@gm.co" };
         await userRepository.CreateOneAsync(newUser);
