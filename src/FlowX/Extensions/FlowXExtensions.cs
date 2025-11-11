@@ -23,7 +23,7 @@ public static class FlowXExtensions
         var newFlowXRegister = new FlowXRegister(serviceCollection);
         options.Invoke(newFlowXRegister);
         serviceCollection.AddTransient(typeof(FlowPipelinesImpl<,>));
-        serviceCollection.AddTransient<IFlow, FlowSender>();
+        serviceCollection.AddTransient<IMediator, MediatorSender>();
         ConnectImplementationsToTypesClosing(typeof(IRequestHandler<,>), serviceCollection,
             [FlowXStatics.HandlersFromNamespaceContaining], false, CancellationToken.None);
         serviceCollection
@@ -37,7 +37,6 @@ public static class FlowXExtensions
             });
         serviceCollection.AddTransient(typeof(IRequestHandler<,>), typeof(DefaultRequestHandler<,>));
         newFlowXRegister.AddPipelines(c => c
-            .OfType(typeof(RetryPipelineBehavior<,>))
             .OfType(typeof(TransportPipeline<,>))
             .OfType(typeof(PagedPipeline<,>))
         );

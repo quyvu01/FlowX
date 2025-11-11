@@ -9,8 +9,8 @@ using Service1.Models;
 
 namespace Service1.Handlers;
 
-public sealed class GetUserHandler(ISqlRepository<User> sqlRepository)
-    : EfQueryOneHandler<User, GetUserQuery, UserResponse>(sqlRepository)
+public sealed class GetUserHandler
+    : EfQueryOneHandler<User, GetUserQuery, UserResponse>
 {
     protected override IQueryOneFlowBuilder<User, UserResponse> BuildQueryFlow(
         IQueryOneFilter<User, UserResponse> fromFlow, IRequestContext<GetUserQuery> queryContext)

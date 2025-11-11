@@ -9,8 +9,7 @@ using FlowX.Tests.Requests;
 
 namespace FlowX.Tests.Handlers;
 
-public sealed class CreateUserHandler(ISqlRepository<User> sqlRepository, IUnitOfWork unitOfWork)
-    : EfCommandOneVoidHandler<User, CreateUserCommand>(sqlRepository, unitOfWork)
+public sealed class CreateUserHandler : EfCommandOneVoidHandler<User, CreateUserCommand>
 {
     protected override ICommandOneFlowBuilderVoid<User> BuildCommand(IStartOneCommandVoid<User> fromFlow,
         IRequestContext<CreateUserCommand> commandContext)

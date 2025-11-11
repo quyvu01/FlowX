@@ -9,8 +9,8 @@ using Service2.Models;
 
 namespace Service2.Handlers;
 
-public sealed class GetProvincesHandler(ISqlRepository<Province> sqlRepository)
-    : EfQueryPaginationHandler<Province, GetProvincesQuery, ProvinceResponse>(sqlRepository)
+public sealed class GetProvincesHandler
+    : EfQueryPaginationHandler<Province, GetProvincesQuery, ProvinceResponse>
 {
     protected override IQueryListFlowBuilder<Province, ProvinceResponse> BuildQueryFlow(
         IQueryListFilter<Province, ProvinceResponse> fromFlow, IRequestContext<GetProvincesQuery> queryContext)

@@ -4,7 +4,7 @@ using FlowX.Responses;
 
 namespace FlowX.Internals;
 
-internal class PagedPipeline<TRequest, TResult> : IFlowPipelineBehavior<TRequest, TResult>
+internal class PagedPipeline<TRequest, TResult> : IPipelineBehavior<TRequest, TResult>
     where TRequest : GetManyQuery, IRequest<TResult>
     where TResult : PaginationResponseGeneral
 {

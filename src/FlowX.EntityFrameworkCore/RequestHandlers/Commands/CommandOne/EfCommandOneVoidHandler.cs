@@ -2,28 +2,24 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandOneFlow;
-using FlowX.ApplicationModels;
-using FlowX.EntityFrameworkCore.Abstractions;
-using FlowX.Errors;
+using FlowX.EntityFrameworkCore.SharedStates;
 using FlowX.Structs;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandOne;
 
-public abstract class EfCommandOneVoidHandler<TModel, TCommand>(
-    ISqlRepository<TModel> sqlRepository,
-    IUnitOfWork unitOfWork)
+public abstract class EfCommandOneVoidHandler<TModel, TCommand>
     : ICommandHandler<TCommand, None>
     where TModel : class
     where TCommand : class, ICommandVoid
 {
-    protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
-    protected IUnitOfWork UnitOfWork { get; } = unitOfWork;
 
     protected abstract ICommandOneFlowBuilderVoid<TModel> BuildCommand(
         IStartOneCommandVoid<TModel> fromFlow, IRequestContext<TCommand> commandContext);
 
     public virtual async Task<None> HandleAsync(IRequestContext<TCommand> requestContext)
     {
+        var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
+        var repository = unitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildCommand(new CommandOneVoidFlow<TModel>(), requestContext);
         var commandType = buildResult.CommandTypeOne;
         switch (commandType)
@@ -36,10 +32,10 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>(
                     throw errorResult;
                 }
 
-                await SqlRepository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
+                await repository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
                 break;
             case CommandTypeOne.Update:
-                var itemUpdating = await SqlRepository
+                var itemUpdating = await repository
                     .GetFirstByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
                         token: requestContext.CancellationToken);
                 if (itemUpdating is null) throw buildResult.NullError;
@@ -52,7 +48,7 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>(
                 await buildResult.UpdateOneFunc.Invoke(itemUpdating);
                 break;
             case CommandTypeOne.Remove:
-                var itemRemoving = await SqlRepository.GetFirstByConditionAsync(buildResult.CommandFilter,
+                var itemRemoving = await repository.GetFirstByConditionAsync(buildResult.CommandFilter,
                     buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
                 if (itemRemoving is null) throw buildResult.NullError;
                 if (buildResult.CommandConditionResultError is not null)
@@ -61,14 +57,14 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>(
                     throw errorResult;
                 }
 
-                await SqlRepository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
+                await repository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
                 break;
             case CommandTypeOne.Unknown:
             default:
                 throw new UnreachableException($"Command {commandType} does not support!");
         }
 
-        await UnitOfWork.SaveChangesAsync(requestContext.CancellationToken);
+        await unitOfWork.SaveChangesAsync(requestContext.CancellationToken);
         return None.Value;
     }
 }

@@ -1,6 +1,5 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
-using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryMany;
 using FlowX.Structs;
 using FlowX.Tests.Models;
@@ -9,8 +8,7 @@ using FlowX.Tests.Responses;
 
 namespace FlowX.Tests.Handlers;
 
-public sealed class GetUsersHandler(ISqlRepository<User> sqlRepository)
-    : EfQueryCollectionHandler<User, GetUsersQuery, UserResponse>(sqlRepository)
+public sealed class GetUsersHandler : EfQueryCollectionHandler<User, GetUsersQuery, UserResponse>
 {
     protected override IQueryListFlowBuilder<User, UserResponse> BuildQueryFlow(
         IQueryListFilter<User, UserResponse> fromFlow, IRequestContext<GetUsersQuery> queryContext)

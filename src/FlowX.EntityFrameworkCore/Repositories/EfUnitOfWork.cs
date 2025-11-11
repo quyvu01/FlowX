@@ -1,12 +1,17 @@
-﻿using FlowX.Abstractions;
-using FlowX.Errors;
-using FlowX.Structs;
-using Microsoft.EntityFrameworkCore;
+﻿using FlowX.EntityFrameworkCore.Abstractions;
+using FlowX.EntityFrameworkCore.Delegates;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FlowX.EntityFrameworkCore.Repositories;
 
-public class EfUnitOfWork<TDbContext>(TDbContext dbContext) : IUnitOfWork where TDbContext : DbContext
+public class EfUnitOfWork(IServiceProvider serviceProvider) : IUnitOfWork
 {
-    public async Task<int> SaveChangesAsync(CancellationToken token = default) =>
-        await dbContext.SaveChangesAsync(token);
+    public IRepository<TModel> RepositoryOf<TModel>() where TModel : class =>
+        serviceProvider.GetService<EfRepository<TModel>>();
+
+    public async Task SaveChangesAsync(CancellationToken token = default)
+    {
+        var dbContexts = serviceProvider.GetRequiredService<GetDbContexts>().Invoke();
+        await Task.WhenAll(dbContexts.Select(a => a.SaveChangesAsync(token)));
+    }
 }

@@ -3,7 +3,7 @@ using FlowX.ApplicationModels;
 
 namespace FlowX.EntityFrameworkCore.Abstractions;
 
-public interface ISqlRepository<T> where T : class
+public interface IRepository<T> where T : class
 {
     IQueryable<T> GetQueryable(Expression<Func<T, bool>> conditionExpression = null);
 

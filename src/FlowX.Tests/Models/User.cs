@@ -1,8 +1,6 @@
-using FlowX.EntityFrameworkCore.Abstractions;
-
 namespace FlowX.Tests.Models;
 
-public class User : IEfModel
+public class User
 {
     public string Id { get; set; }
     public string Name { get; set; }

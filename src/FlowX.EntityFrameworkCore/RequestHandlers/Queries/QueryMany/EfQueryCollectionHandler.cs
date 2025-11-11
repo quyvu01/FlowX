@@ -4,29 +4,30 @@ using FlowX.Abstractions.RequestFlow.Queries;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 using FlowX.EntityFrameworkCore.Abstractions;
+using FlowX.EntityFrameworkCore.SharedStates;
 using FlowX.Extensions;
 using FlowX.Responses;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryMany;
 
-public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>(
-    ISqlRepository<TModel> sqlRepository)
+public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>
     : IQueryHandler<TQuery, CollectionResponse<TResponse>>
     where TModel : class
     where TQuery : IQueryCollection<TResponse>
     where TResponse : class
 {
-    protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
+    public IUnitOfWork UnitOfWork { get; } = EfCoreSharedStates.GetUnitOfWork();
 
     public virtual async Task<CollectionResponse<TResponse>> HandleAsync(IRequestContext<TQuery> requestContext)
     {
+        var repository = UnitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
         switch (buildResult.QuerySpecialActionType)
         {
             case QuerySpecialActionType.ToModel:
             {
-                var items = await SqlRepository
+                var items = await repository
                     .GetManyByConditionAsync(buildResult.Filter, db =>
                     {
                         var finalFilter = buildResult.SpecialActionToModel?.Invoke(db) ?? db;
@@ -39,7 +40,7 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>(
                 return new CollectionResponse<TResponse>(itemsResponse);
             }
             case QuerySpecialActionType.ToTarget:
-                var srcQueryable = SqlRepository
+                var srcQueryable = repository
                     .GetQueryable(buildResult.Filter)
                     .AsNoTracking();
                 var queryable = srcQueryable

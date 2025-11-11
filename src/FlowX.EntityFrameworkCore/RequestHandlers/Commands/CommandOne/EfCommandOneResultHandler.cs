@@ -2,27 +2,22 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandOneFlow;
-using FlowX.EntityFrameworkCore.Abstractions;
-using FlowX.Errors;
-using FlowX.Structs;
+using FlowX.EntityFrameworkCore.SharedStates;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandOne;
 
-public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
-    ISqlRepository<TModel> sqlRepository,
-    IUnitOfWork unitOfWork)
+public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>
     : ICommandHandler<TCommand, TResult>
     where TModel : class
     where TCommand : class, ICommandResult<TResult>
 {
-    protected ISqlRepository<TModel> SqlRepository { get; } = sqlRepository;
-    protected IUnitOfWork UnitOfWork { get; } = unitOfWork;
-
     protected abstract ICommandOneFlowBuilderResult<TModel, TResult> BuildCommand(
         IStartOneCommandResult<TModel, TResult> fromFlow, IRequestContext<TCommand> commandContext);
 
     public virtual async Task<TResult> HandleAsync(IRequestContext<TCommand> requestContext)
     {
+        var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
+        var repository = unitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildCommand(new CommandOneResultFlow<TModel, TResult>(), requestContext);
         var commandType = buildResult.CommandTypeOne;
         TModel item;
@@ -36,11 +31,11 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
                     throw errorResult;
                 }
 
-                await SqlRepository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
+                await repository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
                 item = itemCreating;
                 break;
             case CommandTypeOne.Update:
-                var itemUpdating = await SqlRepository
+                var itemUpdating = await repository
                     .GetFirstByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
                         token: requestContext.CancellationToken);
                 if (buildResult.CommandConditionResultError is not null)
@@ -53,7 +48,7 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
                 item = itemUpdating;
                 break;
             case CommandTypeOne.Remove:
-                var itemRemoving = await SqlRepository.GetFirstByConditionAsync(buildResult.CommandFilter,
+                var itemRemoving = await repository.GetFirstByConditionAsync(buildResult.CommandFilter,
                     buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
                 if (buildResult.CommandConditionResultError is not null)
                 {
@@ -61,7 +56,7 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
                     throw errorResult;
                 }
 
-                await SqlRepository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
+                await repository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
                 item = itemRemoving;
                 break;
             case CommandTypeOne.Unknown:
@@ -69,7 +64,7 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>(
                 throw new UnreachableException($"Command {commandType} does not support!");
         }
 
-        await UnitOfWork.SaveChangesAsync(requestContext.CancellationToken);
+        await unitOfWork.SaveChangesAsync(requestContext.CancellationToken);
         var result = buildResult.ResultFunc.Invoke(item);
         return result;
     }

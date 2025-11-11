@@ -9,8 +9,7 @@ using Service2.Models;
 
 namespace Service2.Handlers;
 
-public sealed class CreateProvinceHandler(ISqlRepository<Province> sqlRepository, IUnitOfWork unitOfWork)
-    : EfCommandOneVoidHandler<Province, CreateProvinceCommand>(sqlRepository, unitOfWork)
+public sealed class CreateProvinceHandler : EfCommandOneVoidHandler<Province, CreateProvinceCommand>
 {
     protected override ICommandOneFlowBuilderVoid<Province> BuildCommand(IStartOneCommandVoid<Province> fromFlow,
         IRequestContext<CreateProvinceCommand> commandContext)

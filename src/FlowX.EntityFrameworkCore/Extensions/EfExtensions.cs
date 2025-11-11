@@ -1,12 +1,12 @@
-using System.Reflection;
-using FlowX.Abstractions;
+using System.Collections.Concurrent;
 using FlowX.EntityFrameworkCore.Abstractions;
+using FlowX.EntityFrameworkCore.Delegates;
+using FlowX.EntityFrameworkCore.Exceptions;
+using FlowX.EntityFrameworkCore.InternalPipelines;
 using FlowX.EntityFrameworkCore.Registries;
 using FlowX.EntityFrameworkCore.Repositories;
 using FlowX.Extensions;
-using FlowX.Registries;
-using FlowX.Statics;
-using Microsoft.EntityFrameworkCore;
+using FlowX.Wrappers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -14,31 +14,39 @@ namespace FlowX.EntityFrameworkCore.Extensions;
 
 public static class EfExtensions
 {
-    public static FlowXRegister AddDbContextDynamic<TDbContext>(this FlowXRegister flowXRegister,
-        Action<FlowXEfCoreRegister> options) where TDbContext : DbContext
+    public static FlowXRegisterWrapped AddEfCore(this FlowXRegisterWrapped flowXRegisterWrapped,
+        Action<FlowXEfCoreRegister> options)
     {
-        var flowXEfCoreRegister = new FlowXEfCoreRegister(flowXRegister.ServiceCollection);
+        var serviceCollection = flowXRegisterWrapped.FlowXRegister.ServiceCollection;
+        var flowXEfCoreRegister = new FlowXEfCoreRegister(serviceCollection);
         options.Invoke(flowXEfCoreRegister);
-        if (flowXEfCoreRegister.IsDynamicRepositories)
-            AddEfRepositoriesAsScope<TDbContext>(flowXRegister.ServiceCollection,
-                FlowXStatics.ModelsFromNamespaceContaining, FlowXStatics.ModelsFilter);
-        if (flowXEfCoreRegister.IsDynamicUnitOfWork)
-            AddEfUnitOfWorkAsScope<TDbContext>(flowXRegister.ServiceCollection);
-        return flowXRegister;
+
+        serviceCollection.AddScoped<GetDbContexts>(sp =>
+            () => [..sp.GetServices<IDbContext>().Select(a => a.DbContext)]);
+
+        var modelCacheLookup = new ConcurrentDictionary<Type, int>();
+
+        serviceCollection.AddScoped<GetDbContext>(sp => modelType =>
+        {
+            var modelCached = modelCacheLookup.GetOrAdd(modelType, mt =>
+            {
+                var ofXDbContexts = sp.GetServices<IDbContext>().ToList();
+                var internalDbContext = ofXDbContexts.FirstOrDefault(x => x.HasCollection(mt));
+                return internalDbContext is null
+                    ? throw new FlowXEntityFrameworkException.ModelDoesNotBelongToDbContext(modelType)
+                    : ofXDbContexts.IndexOf(internalDbContext);
+            });
+            var iDbContext = sp.GetServices<IDbContext>().Skip(modelCached).First();
+            return iDbContext.DbContext;
+        });
+
+        serviceCollection.AddScoped<IUnitOfWork, EfUnitOfWork>();
+        serviceCollection.AddScoped(typeof(EfRepository<>));
+        flowXRegisterWrapped.FlowXRegister
+            .AddPipelines(c => c.OfType(typeof(UnitOfWorkStatePipeline<,>)));
+        return flowXRegisterWrapped;
     }
 
-    private static void AddEfRepositoriesAsScope<TDbContext>(IServiceCollection serviceCollection,
-        Assembly modelAssembly, Func<Type, bool> modelsFilter)
-        where TDbContext : DbContext
-    {
-        modelAssembly.ExportedTypes
-            .Where(x => typeof(IEfModel).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false })
-            .Where(x => modelsFilter?.Invoke(x) ?? true)
-            .ForEach(modelType => serviceCollection.TryAddScoped(typeof(ISqlRepository<>).MakeGenericType(modelType),
-                typeof(EfRepository<,>).MakeGenericType(typeof(TDbContext), modelType)));
-    }
-
-    private static void AddEfUnitOfWorkAsScope<TDbContext>(IServiceCollection serviceCollection)
-        where TDbContext : DbContext =>
-        serviceCollection.TryAddScoped(typeof(IUnitOfWork), typeof(EfUnitOfWork<TDbContext>));
+    private static void AddEfUnitOfWorkAsScope(IServiceCollection serviceCollection) =>
+        serviceCollection.TryAddScoped<IUnitOfWork, EfUnitOfWork>();
 }

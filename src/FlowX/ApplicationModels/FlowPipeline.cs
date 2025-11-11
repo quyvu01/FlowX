@@ -6,7 +6,7 @@ namespace FlowX.ApplicationModels;
 
 public sealed class FlowPipeline(IServiceCollection serviceCollection)
 {
-    private static readonly Type InterfaceReceivedPipeline = typeof(IFlowPipelineBehavior<,>);
+    private static readonly Type InterfaceReceivedPipeline = typeof(IPipelineBehavior<,>);
 
     public FlowPipeline OfType<TReceivedPipeline>(ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
     {
