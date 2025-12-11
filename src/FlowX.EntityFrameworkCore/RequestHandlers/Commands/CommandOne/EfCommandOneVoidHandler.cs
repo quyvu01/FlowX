@@ -12,7 +12,6 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
     where TModel : class
     where TCommand : class, ICommandVoid
 {
-
     protected abstract ICommandOneFlowBuilderVoid<TModel> BuildCommand(
         IStartOneCommandVoid<TModel> fromFlow, IRequestContext<TCommand> commandContext);
 
@@ -32,6 +31,9 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
                     throw errorResult;
                 }
 
+                if (buildResult.CommandConditionResultNone is not null)
+                    await buildResult.CommandConditionResultNone.Invoke(itemCreating);
+
                 await repository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
                 break;
             case CommandTypeOne.Update:
@@ -45,6 +47,9 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
                     throw errorResult;
                 }
 
+                if (buildResult.CommandConditionResultNone is not null)
+                    await buildResult.CommandConditionResultNone.Invoke(itemUpdating);
+
                 await buildResult.UpdateOneFunc.Invoke(itemUpdating);
                 break;
             case CommandTypeOne.Remove:
@@ -56,6 +61,9 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
                     var errorResult = await buildResult.CommandConditionResultError.Invoke(itemRemoving);
                     throw errorResult;
                 }
+
+                if (buildResult.CommandConditionResultNone is not null)
+                    await buildResult.CommandConditionResultNone.Invoke(itemRemoving);
 
                 await repository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
                 break;
