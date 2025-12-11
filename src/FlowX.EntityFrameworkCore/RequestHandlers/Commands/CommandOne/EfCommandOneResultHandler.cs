@@ -31,6 +31,9 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>
                     throw errorResult;
                 }
 
+                if (buildResult.CommandConditionResultNone is not null)
+                    await buildResult.CommandConditionResultNone.Invoke(itemCreating);
+
                 await repository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
                 item = itemCreating;
                 break;
@@ -44,6 +47,9 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>
                     throw errorResult;
                 }
 
+                if (buildResult.CommandConditionResultNone is not null)
+                    await buildResult.CommandConditionResultNone.Invoke(itemUpdating);
+
                 await buildResult.UpdateOneFunc.Invoke(itemUpdating);
                 item = itemUpdating;
                 break;
@@ -55,6 +61,9 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>
                     var errorResult = await buildResult.CommandConditionResultError.Invoke(itemRemoving);
                     throw errorResult;
                 }
+
+                if (buildResult.CommandConditionResultNone is not null)
+                    await buildResult.CommandConditionResultNone.Invoke(itemRemoving);
 
                 await repository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
                 item = itemRemoving;

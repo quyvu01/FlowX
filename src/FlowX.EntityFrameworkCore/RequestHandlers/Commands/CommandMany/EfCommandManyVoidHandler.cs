@@ -31,6 +31,9 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>
                     throw errorResult;
                 }
 
+                if (buildResult.CommandConditionResultNone is not null)
+                    await buildResult.CommandConditionResultNone.Invoke(itemsCreating);
+
                 await repository.CreateManyAsync(itemsCreating, token: requestContext.CancellationToken);
                 break;
             case CommandTypeMany.Update:
@@ -43,6 +46,9 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>
                     throw errorResult;
                 }
 
+                if (buildResult.CommandConditionResultNone is not null)
+                    await buildResult.CommandConditionResultNone.Invoke(itemsUpdating);
+
                 await buildResult.UpdateManyFunc.Invoke(itemsUpdating);
                 break;
             case CommandTypeMany.Remove:
@@ -53,6 +59,9 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>
                     var errorResult = await buildResult.CommandConditionResultError.Invoke(itemsRemoving);
                     throw errorResult;
                 }
+
+                if (buildResult.CommandConditionResultNone is not null)
+                    await buildResult.CommandConditionResultNone.Invoke(itemsRemoving);
 
                 await repository.RemoveManyAsync(itemsRemoving, requestContext.CancellationToken);
                 break;
