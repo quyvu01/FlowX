@@ -3,7 +3,6 @@ using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
-using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.EntityFrameworkCore.SharedStates;
 using FlowX.Extensions;
 using FlowX.Responses;
@@ -17,11 +16,10 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>
     where TQuery : IQueryCollection<TResponse>
     where TResponse : class
 {
-    public IUnitOfWork UnitOfWork { get; } = EfCoreSharedStates.GetUnitOfWork();
-
     public virtual async Task<CollectionResponse<TResponse>> HandleAsync(IRequestContext<TQuery> requestContext)
     {
-        var repository = UnitOfWork.RepositoryOf<TModel>();
+        var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
+        var repository = unitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
         switch (buildResult.QuerySpecialActionType)
         {

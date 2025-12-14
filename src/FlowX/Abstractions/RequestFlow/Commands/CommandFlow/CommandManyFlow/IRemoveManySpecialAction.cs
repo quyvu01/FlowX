@@ -8,6 +8,6 @@ public interface IRemoveManySpecialActionResult<TModel, TResult> where TModel : 
 
 public interface IRemoveManySpecialActionVoid<TModel> where TModel : class
 {
-    IRemoveManyConditionVoid<TModel>
-        WithSpecialAction(Func<IQueryable<TModel>, IQueryable<TModel>> specialAction);
+    IRemoveManyConditionVoid<TModel> WithSpecialAction(
+        Func<IQueryable<TModel>, IQueryable<TModel>> specialAction);
 }

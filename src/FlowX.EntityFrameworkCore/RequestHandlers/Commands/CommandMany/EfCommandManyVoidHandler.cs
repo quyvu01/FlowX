@@ -25,14 +25,11 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>
         {
             case CommandTypeMany.Create:
                 var itemsCreating = await buildResult.ModelsCreateFunc.Invoke();
-                if (buildResult.CommandConditionResultError is not null)
+                if (buildResult.ConditionAsync is { } conditionCreatingAsync)
                 {
-                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemsCreating);
-                    throw errorResult;
+                    var errorResult = await conditionCreatingAsync.Invoke(itemsCreating);
+                    if (errorResult.IsT1) throw errorResult.AsT1;
                 }
-
-                if (buildResult.CommandConditionResultNone is not null)
-                    await buildResult.CommandConditionResultNone.Invoke(itemsCreating);
 
                 await repository.CreateManyAsync(itemsCreating, token: requestContext.CancellationToken);
                 break;
@@ -40,28 +37,22 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>
                 var itemsUpdating = await repository
                     .GetManyByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
                         token: requestContext.CancellationToken);
-                if (buildResult.CommandConditionResultError is not null)
+                if (buildResult.ConditionAsync is { } conditionUpdatingAsync)
                 {
-                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemsUpdating);
-                    throw errorResult;
+                    var errorResult = await conditionUpdatingAsync.Invoke(itemsUpdating);
+                    if (errorResult.IsT1) throw errorResult.AsT1;
                 }
-
-                if (buildResult.CommandConditionResultNone is not null)
-                    await buildResult.CommandConditionResultNone.Invoke(itemsUpdating);
 
                 await buildResult.UpdateManyFunc.Invoke(itemsUpdating);
                 break;
             case CommandTypeMany.Remove:
                 var itemsRemoving = await repository.GetManyByConditionAsync(buildResult.CommandFilter,
                     buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
-                if (buildResult.CommandConditionResultError is not null)
+                if (buildResult.ConditionAsync is { } conditionRemovingAsync)
                 {
-                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemsRemoving);
-                    throw errorResult;
+                    var errorResult = await conditionRemovingAsync.Invoke(itemsRemoving);
+                    if (errorResult.IsT1) throw errorResult.AsT1;
                 }
-
-                if (buildResult.CommandConditionResultNone is not null)
-                    await buildResult.CommandConditionResultNone.Invoke(itemsRemoving);
 
                 await repository.RemoveManyAsync(itemsRemoving, requestContext.CancellationToken);
                 break;

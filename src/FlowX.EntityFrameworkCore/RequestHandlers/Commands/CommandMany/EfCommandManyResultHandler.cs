@@ -3,6 +3,7 @@ using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandManyFlow;
 using FlowX.EntityFrameworkCore.SharedStates;
+using FlowX.Extensions;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandMany;
 
@@ -25,14 +26,11 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>
         {
             case CommandTypeMany.Create:
                 var itemsCreating = await buildResult.ModelsCreateFunc.Invoke();
-                if (buildResult.CommandConditionResultError is not null)
+                if (buildResult.ConditionAsync is { } conditionCreatingAsync)
                 {
-                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemsCreating);
-                    throw errorResult;
+                    var conditionResult = await conditionCreatingAsync.Invoke(itemsCreating);
+                    conditionResult.ThrowIfError();
                 }
-
-                if (buildResult.CommandConditionResultNone is not null)
-                    await buildResult.CommandConditionResultNone.Invoke(itemsCreating);
 
                 await repository.CreateManyAsync(itemsCreating, token: requestContext.CancellationToken);
                 items = itemsCreating;
@@ -41,14 +39,11 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>
                 var itemsUpdating = await repository
                     .GetManyByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
                         token: requestContext.CancellationToken);
-                if (buildResult.CommandConditionResultError is not null)
+                if (buildResult.ConditionAsync is { } conditionUpdatingAsync)
                 {
-                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemsUpdating);
-                    throw errorResult;
+                    var conditionResult = await conditionUpdatingAsync.Invoke(itemsUpdating);
+                    conditionResult.ThrowIfError();
                 }
-
-                if (buildResult.CommandConditionResultNone is not null)
-                    await buildResult.CommandConditionResultNone.Invoke(itemsUpdating);
 
                 await buildResult.UpdateManyFunc.Invoke(itemsUpdating);
                 items = itemsUpdating;
@@ -56,14 +51,11 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>
             case CommandTypeMany.Remove:
                 var itemsRemoving = await repository.GetManyByConditionAsync(buildResult.CommandFilter,
                     buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
-                if (buildResult.CommandConditionResultError is not null)
+                if (buildResult.ConditionAsync is { } conditionRemovingAsync)
                 {
-                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemsRemoving);
-                    throw errorResult;
+                    var conditionResult = await conditionRemovingAsync.Invoke(itemsRemoving);
+                    conditionResult.ThrowIfError();
                 }
-
-                if (buildResult.CommandConditionResultNone is not null)
-                    await buildResult.CommandConditionResultNone.Invoke(itemsRemoving);
 
                 await repository.RemoveManyAsync(itemsRemoving, requestContext.CancellationToken);
                 items = itemsRemoving;

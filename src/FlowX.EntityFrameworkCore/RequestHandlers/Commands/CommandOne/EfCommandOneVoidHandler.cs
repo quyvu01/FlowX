@@ -3,6 +3,7 @@ using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandOneFlow;
 using FlowX.EntityFrameworkCore.SharedStates;
+using FlowX.Extensions;
 using FlowX.Structs;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandOne;
@@ -25,14 +26,11 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
         {
             case CommandTypeOne.Create:
                 var itemCreating = await buildResult.ModelCreateFunc.Invoke();
-                if (buildResult.CommandConditionResultError is not null)
+                if (buildResult.ConditionAsync is { } conditionCreatingAsync)
                 {
-                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemCreating);
-                    throw errorResult;
+                    var conditionResult = await conditionCreatingAsync.Invoke(itemCreating);
+                    conditionResult.ThrowIfError();
                 }
-
-                if (buildResult.CommandConditionResultNone is not null)
-                    await buildResult.CommandConditionResultNone.Invoke(itemCreating);
 
                 await repository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
                 break;
@@ -41,14 +39,12 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
                     .GetFirstByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
                         token: requestContext.CancellationToken);
                 if (itemUpdating is null) throw buildResult.NullError;
-                if (buildResult.CommandConditionResultError is not null)
-                {
-                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemUpdating);
-                    throw errorResult;
-                }
 
-                if (buildResult.CommandConditionResultNone is not null)
-                    await buildResult.CommandConditionResultNone.Invoke(itemUpdating);
+                if (buildResult.ConditionAsync is { } conditionUpdatingAsync)
+                {
+                    var conditionResult = await conditionUpdatingAsync.Invoke(itemUpdating);
+                    conditionResult.ThrowIfError();
+                }
 
                 await buildResult.UpdateOneFunc.Invoke(itemUpdating);
                 break;
@@ -56,14 +52,11 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
                 var itemRemoving = await repository.GetFirstByConditionAsync(buildResult.CommandFilter,
                     buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
                 if (itemRemoving is null) throw buildResult.NullError;
-                if (buildResult.CommandConditionResultError is not null)
+                if (buildResult.ConditionAsync is { } conditionRemovingAsync)
                 {
-                    var errorResult = await buildResult.CommandConditionResultError.Invoke(itemRemoving);
-                    throw errorResult;
+                    var conditionResult = await conditionRemovingAsync.Invoke(itemRemoving);
+                    conditionResult.ThrowIfError();
                 }
-
-                if (buildResult.CommandConditionResultNone is not null)
-                    await buildResult.CommandConditionResultNone.Invoke(itemRemoving);
 
                 await repository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
                 break;
