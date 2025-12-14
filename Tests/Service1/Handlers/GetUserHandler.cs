@@ -1,6 +1,5 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryOneFlow;
-using FlowX.EntityFrameworkCore.Abstractions;
 using FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryOne;
 using FlowX.Errors;
 using Service1.Contracts.Requests;

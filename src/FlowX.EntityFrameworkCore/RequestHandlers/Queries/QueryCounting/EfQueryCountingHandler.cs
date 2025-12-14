@@ -17,8 +17,9 @@ public abstract class EfQueryCountingHandler<TModel, TQuery> :
     public virtual async Task<CountingResponse> HandleAsync(IRequestContext<TQuery> requestContext)
     {
         var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
+        var repository = unitOfWork.RepositoryOf<TModel>();
         var flowBuilder = BuildQueryFlow(new CountingFlow<TModel>(), requestContext);
-        var count = await unitOfWork.RepositoryOf<TModel>()
+        var count = await repository
             .CountByConditionAsync(flowBuilder.Filter, null, requestContext.CancellationToken);
         return new CountingResponse { Count = count };
     }

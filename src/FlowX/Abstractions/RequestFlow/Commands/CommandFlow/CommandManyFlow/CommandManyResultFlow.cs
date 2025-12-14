@@ -108,8 +108,7 @@ public class CommandManyResultFlow<TModel, TResult> :
 
     public CommandTypeMany CommandTypeMany { get; private set; } = CommandTypeMany.Unknown;
     public Func<Task<List<TModel>>> ModelsCreateFunc { get; private set; }
-    public Func<List<TModel>, Task<None>> CommandConditionResultNone { get; private set; }
-    public Func<List<TModel>, Task<Error>> CommandConditionResultError { get; private set; }
+    public Func<IReadOnlyCollection<TModel>, Task<OneOf<None, Error>>> ConditionAsync { get; private set; }
     public Expression<Func<TModel, bool>> CommandFilter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; private set; }
     public Func<List<TModel>, Task> UpdateManyFunc { get; private set; }
@@ -118,86 +117,44 @@ public class CommandManyResultFlow<TModel, TResult> :
     public Func<List<TModel>, TResult> ResultFunc { get; private set; }
 
     ISaveChangesManyErrorDetailResult<TModel, TResult> ICreateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, None> condition)
+        Func<IReadOnlyCollection<TModel>, OneOf<None, Error>> condition)
     {
-        CommandConditionResultNone = models => Task.FromResult(condition.Invoke(models));
+        ConditionAsync = models => Task.FromResult(condition(models));
         return this;
     }
 
     ISaveChangesManyErrorDetailResult<TModel, TResult> IRemoveManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Error> condition)
+        Func<IReadOnlyCollection<TModel>, Task<OneOf<None, Error>>> conditionAsync)
     {
-        CommandConditionResultError = models => Task.FromResult(condition.Invoke(models));
+        ConditionAsync = conditionAsync;
         return this;
     }
 
     ISaveChangesManyErrorDetailResult<TModel, TResult> IRemoveManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Task<None>> conditionAsync)
+        Func<IReadOnlyCollection<TModel>, OneOf<None, Error>> condition)
     {
-        CommandConditionResultNone = conditionAsync;
-        return this;
-    }
-
-    ISaveChangesManyErrorDetailResult<TModel, TResult> IRemoveManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Task<Error>> conditionAsync)
-    {
-        CommandConditionResultError = conditionAsync;
-        return this;
-    }
-
-    ISaveChangesManyErrorDetailResult<TModel, TResult> IRemoveManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, None> condition)
-    {
-        CommandConditionResultNone = models => Task.FromResult(condition.Invoke(models));
+        ConditionAsync = models => Task.FromResult(condition(models));
         return this;
     }
 
     IUpdateManyModifyResult<TModel, TResult> IUpdateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Error> condition)
+        Func<IReadOnlyCollection<TModel>, Task<OneOf<None, Error>>> conditionAsync)
     {
-        CommandConditionResultError = models => Task.FromResult(condition.Invoke(models));
+        ConditionAsync = conditionAsync;
         return this;
     }
 
     IUpdateManyModifyResult<TModel, TResult> IUpdateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Task<None>> conditionAsync)
+        Func<IReadOnlyCollection<TModel>, OneOf<None, Error>> condition)
     {
-        CommandConditionResultNone = conditionAsync;
-        return this;
-    }
-
-    IUpdateManyModifyResult<TModel, TResult> IUpdateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Task<Error>> conditionAsync)
-    {
-        CommandConditionResultError = conditionAsync;
-        return this;
-    }
-
-    IUpdateManyModifyResult<TModel, TResult> IUpdateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, None> condition)
-    {
-        CommandConditionResultNone = models => Task.FromResult(condition.Invoke(models));
+        ConditionAsync = models => Task.FromResult(condition(models));
         return this;
     }
 
     ISaveChangesManyErrorDetailResult<TModel, TResult> ICreateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Error> condition)
+        Func<IReadOnlyCollection<TModel>, Task<OneOf<None, Error>>> conditionAsync)
     {
-        CommandConditionResultError = models => Task.FromResult(condition.Invoke(models));
-        return this;
-    }
-
-    ISaveChangesManyErrorDetailResult<TModel, TResult> ICreateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Task<None>> conditionAsync)
-    {
-        CommandConditionResultNone = conditionAsync;
-        return this;
-    }
-
-    ISaveChangesManyErrorDetailResult<TModel, TResult> ICreateManyConditionResult<TModel, TResult>.WithCondition(
-        Func<List<TModel>, Task<Error>> conditionAsync)
-    {
-        CommandConditionResultError = conditionAsync;
+        ConditionAsync = conditionAsync;
         return this;
     }
 }
