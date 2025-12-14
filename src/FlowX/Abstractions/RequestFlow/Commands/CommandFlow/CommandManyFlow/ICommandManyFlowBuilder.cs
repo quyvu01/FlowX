@@ -7,17 +7,17 @@ namespace FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandManyFlow;
 public interface ICommandManyFlowBuilderResult<TModel, out TResult> :
     ICommandManyFlowBuilderVoid<TModel> where TModel : class
 {
-    Func<List<TModel>, TResult> ResultFunc { get; }
+    Func<IReadOnlyCollection<TModel>, TResult> ResultFunc { get; }
 }
 
 public interface ICommandManyFlowBuilderVoid<TModel> where TModel : class
 {
     CommandTypeMany CommandTypeMany { get; }
-    Func<Task<List<TModel>>> ModelsCreateFunc { get; }
+    Func<Task<IEnumerable<TModel>>> ModelsAsync { get; }
     Func<IReadOnlyCollection<TModel>, Task<OneOf<None, Error>>> ConditionAsync { get; }
     Expression<Func<TModel, bool>> CommandFilter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; }
-    Func<List<TModel>, Task> UpdateManyFunc { get; }
+    Func<IReadOnlyCollection<TModel>, Task> UpdateManyFunc { get; }
     Error NullError { get; }
     Error SaveChangesError { get; }
 }

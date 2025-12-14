@@ -21,11 +21,11 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>
         var repository = unitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildCommand(new CommandManyResultFlow<TModel, TResult>(), requestContext);
         var commandType = buildResult.CommandTypeMany;
-        List<TModel> items;
+        TModel[] items;
         switch (commandType)
         {
             case CommandTypeMany.Create:
-                var itemsCreating = await buildResult.ModelsCreateFunc.Invoke();
+                var itemsCreating = (await buildResult.ModelsAsync.Invoke()).ToArray();
                 if (buildResult.ConditionAsync is { } conditionCreatingAsync)
                 {
                     var conditionResult = await conditionCreatingAsync.Invoke(itemsCreating);
@@ -36,9 +36,9 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>
                 items = itemsCreating;
                 break;
             case CommandTypeMany.Update:
-                var itemsUpdating = await repository
+                var itemsUpdating = (await repository
                     .GetManyByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
-                        token: requestContext.CancellationToken);
+                        token: requestContext.CancellationToken)).ToArray();
                 if (buildResult.ConditionAsync is { } conditionUpdatingAsync)
                 {
                     var conditionResult = await conditionUpdatingAsync.Invoke(itemsUpdating);
@@ -49,8 +49,9 @@ public abstract class EfCommandManyResultHandler<TModel, TCommand, TResult>
                 items = itemsUpdating;
                 break;
             case CommandTypeMany.Remove:
-                var itemsRemoving = await repository.GetManyByConditionAsync(buildResult.CommandFilter,
-                    buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
+                var itemsRemoving = (await repository
+                    .GetManyByConditionAsync(buildResult.CommandFilter,
+                    buildResult.CommandSpecialAction, token: requestContext.CancellationToken)).ToArray();
                 if (buildResult.ConditionAsync is { } conditionRemovingAsync)
                 {
                     var conditionResult = await conditionRemovingAsync.Invoke(itemsRemoving);

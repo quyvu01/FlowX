@@ -33,12 +33,13 @@ internal class EfRepository<TModel>(IServiceProvider serviceProvider) : IReposit
             : _collection.AsNoTracking().AnyAsync(conditionExpression, token);
     }
 
-    public Task<List<TModel>> GetManyByConditionAsync(Expression<Func<TModel, bool>> conditionExpression = null,
+    public async Task<IEnumerable<TModel>> GetManyByConditionAsync(
+        Expression<Func<TModel, bool>> conditionExpression = null,
         Func<IQueryable<TModel>, IQueryable<TModel>> specialAction = null, CancellationToken token = default)
     {
         var preFilter = _collection.Where(conditionExpression ?? (_ => true));
         var dataWithSpecialAction = specialAction?.Invoke(preFilter) ?? preFilter;
-        return dataWithSpecialAction.ToListAsync(token);
+        return await dataWithSpecialAction.ToArrayAsync(token);
     }
 
     public async Task<Pagination<TModel>> GetManyByConditionWithPaginationAsync(
@@ -65,10 +66,12 @@ internal class EfRepository<TModel>(IServiceProvider serviceProvider) : IReposit
         return result.Entity;
     }
 
-    async Task<List<TModel>> IRepository<TModel>.CreateManyAsync(List<TModel> items, CancellationToken token)
+    async Task<IEnumerable<TModel>> IRepository<TModel>.CreateManyAsync(IEnumerable<TModel> items,
+        CancellationToken token)
     {
-        await _collection.AddRangeAsync(items, token);
-        return items;
+        var itemsCreating = items.ToArray();
+        await _collection.AddRangeAsync(itemsCreating, token);
+        return itemsCreating;
     }
 
     public async Task<TModel> RemoveOneAsync(Expression<Func<TModel, bool>> filter, CancellationToken token = default)
@@ -84,17 +87,20 @@ internal class EfRepository<TModel>(IServiceProvider serviceProvider) : IReposit
         return result.Entity;
     }
 
-    public async Task<List<TModel>> RemoveManyAsync(Expression<Func<TModel, bool>> filter,
+    public async Task<IEnumerable<TModel>> RemoveManyAsync(Expression<Func<TModel, bool>> filter,
         CancellationToken token = default)
     {
-        var items = await _collection.Where(filter).ToListAsync(cancellationToken: token);
+        var items = await _collection.Where(filter).ToArrayAsync(cancellationToken: token);
         _collection.RemoveRange(items);
         return items;
     }
 
-    public Task<List<TModel>> RemoveManyAsync(List<TModel> items, CancellationToken token = default)
+
+    public async Task<IEnumerable<TModel>> RemoveManyAsync(IEnumerable<TModel> items, CancellationToken token = default)
     {
-        _collection.RemoveRange(items);
-        return Task.FromResult(items);
+        await Task.Yield();
+        var itemsRemoving = items.ToArray();
+        _collection.RemoveRange(itemsRemoving);
+        return itemsRemoving;
     }
 }

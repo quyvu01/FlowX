@@ -13,7 +13,7 @@ public interface IRepository<T> where T : class
     Task<bool> ExistByConditionAsync(Expression<Func<T, bool>> conditionExpression = null,
         CancellationToken token = default);
 
-    Task<List<T>> GetManyByConditionAsync(Expression<Func<T, bool>> conditionExpression = null,
+    Task<IEnumerable<T>> GetManyByConditionAsync(Expression<Func<T, bool>> conditionExpression = null,
         Func<IQueryable<T>, IQueryable<T>> specialAction = null, CancellationToken token = default);
 
     Task<Pagination<T>> GetManyByConditionWithPaginationAsync(Expression<Func<T, bool>> conditionExpression = null,
@@ -24,11 +24,11 @@ public interface IRepository<T> where T : class
 
     Task<T> CreateOneAsync(T item, CancellationToken token = default);
 
-    Task<List<T>> CreateManyAsync(List<T> items, CancellationToken token = default);
+    Task<IEnumerable<T>> CreateManyAsync(IEnumerable<T> items, CancellationToken token = default);
 
     Task<T> RemoveOneAsync(Expression<Func<T, bool>> filter, CancellationToken token = default);
 
     Task<T> RemoveOneAsync(T item, CancellationToken token = default);
-    Task<List<T>> RemoveManyAsync(Expression<Func<T, bool>> filter, CancellationToken token = default);
-    Task<List<T>> RemoveManyAsync(List<T> items, CancellationToken token = default);
+    Task<IEnumerable<T>> RemoveManyAsync(Expression<Func<T, bool>> filter, CancellationToken token = default);
+    Task<IEnumerable<T>> RemoveManyAsync(IEnumerable<T> items, CancellationToken token = default);
 }
