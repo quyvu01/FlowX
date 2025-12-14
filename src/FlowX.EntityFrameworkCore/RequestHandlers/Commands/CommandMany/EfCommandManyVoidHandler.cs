@@ -24,7 +24,7 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>
         switch (commandType)
         {
             case CommandTypeMany.Create:
-                var itemsCreating = await buildResult.ModelsCreateFunc.Invoke();
+                var itemsCreating = (await buildResult.ModelsAsync.Invoke()).ToArray();
                 if (buildResult.ConditionAsync is { } conditionCreatingAsync)
                 {
                     var errorResult = await conditionCreatingAsync.Invoke(itemsCreating);
@@ -34,9 +34,9 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>
                 await repository.CreateManyAsync(itemsCreating, token: requestContext.CancellationToken);
                 break;
             case CommandTypeMany.Update:
-                var itemsUpdating = await repository
+                var itemsUpdating = (await repository
                     .GetManyByConditionAsync(buildResult.CommandFilter, buildResult.CommandSpecialAction,
-                        token: requestContext.CancellationToken);
+                        token: requestContext.CancellationToken)).ToArray();
                 if (buildResult.ConditionAsync is { } conditionUpdatingAsync)
                 {
                     var errorResult = await conditionUpdatingAsync.Invoke(itemsUpdating);
@@ -46,8 +46,8 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>
                 await buildResult.UpdateManyFunc.Invoke(itemsUpdating);
                 break;
             case CommandTypeMany.Remove:
-                var itemsRemoving = await repository.GetManyByConditionAsync(buildResult.CommandFilter,
-                    buildResult.CommandSpecialAction, token: requestContext.CancellationToken);
+                var itemsRemoving = (await repository.GetManyByConditionAsync(buildResult.CommandFilter,
+                    buildResult.CommandSpecialAction, token: requestContext.CancellationToken)).ToArray();
                 if (buildResult.ConditionAsync is { } conditionRemovingAsync)
                 {
                     var errorResult = await conditionRemovingAsync.Invoke(itemsRemoving);

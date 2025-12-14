@@ -18,24 +18,24 @@ public class CommandManyResultFlow<TModel, TResult> :
     ICommandManyFlowBuilderResult<TModel, TResult>
     where TModel : class
 {
-    public ICreateManyConditionResult<TModel, TResult> CreateMany(Func<Task<List<TModel>>> modelsFunc)
+    public ICreateManyConditionResult<TModel, TResult> CreateMany(Func<Task<IEnumerable<TModel>>> modelsAsync)
     {
         CommandTypeMany = CommandTypeMany.Create;
-        ModelsCreateFunc = modelsFunc;
+        ModelsAsync = modelsAsync;
         return this;
     }
 
-    public ICreateManyConditionResult<TModel, TResult> CreateMany(Func<List<TModel>> modelsFunc)
+    public ICreateManyConditionResult<TModel, TResult> CreateMany(Func<IEnumerable<TModel>> modelsFunc)
     {
         CommandTypeMany = CommandTypeMany.Create;
-        ModelsCreateFunc = () => Task.FromResult(modelsFunc.Invoke());
+        ModelsAsync = () => Task.FromResult(modelsFunc.Invoke());
         return this;
     }
 
-    public ICreateManyConditionResult<TModel, TResult> CreateMany(List<TModel> models)
+    public ICreateManyConditionResult<TModel, TResult> CreateMany(IEnumerable<TModel> models)
     {
         CommandTypeMany = CommandTypeMany.Create;
-        ModelsCreateFunc = () => Task.FromResult(models);
+        ModelsAsync = () => Task.FromResult(models);
         return this;
     }
 
@@ -54,13 +54,13 @@ public class CommandManyResultFlow<TModel, TResult> :
         return this;
     }
 
-    public ISaveChangesManyErrorDetailResult<TModel, TResult> WithModify(Func<List<TModel>, Task> updateFuncAsync)
+    public ISaveChangesManyErrorDetailResult<TModel, TResult> WithModify(Func<IReadOnlyCollection<TModel>, Task> updateFuncAsync)
     {
         UpdateManyFunc = updateFuncAsync;
         return this;
     }
 
-    public ISaveChangesManyErrorDetailResult<TModel, TResult> WithModify(Action<List<TModel>> updateFunc)
+    public ISaveChangesManyErrorDetailResult<TModel, TResult> WithModify(Action<IReadOnlyCollection<TModel>> updateFunc)
     {
         UpdateManyFunc = models =>
         {
@@ -100,21 +100,21 @@ public class CommandManyResultFlow<TModel, TResult> :
     }
 
     public ICommandManyFlowBuilderResult<TModel, TResult> WithResultIfSucceed(
-        Func<List<TModel>, TResult> resultFunc)
+        Func<IReadOnlyCollection<TModel>, TResult> resultFunc)
     {
         ResultFunc = resultFunc;
         return this;
     }
 
     public CommandTypeMany CommandTypeMany { get; private set; } = CommandTypeMany.Unknown;
-    public Func<Task<List<TModel>>> ModelsCreateFunc { get; private set; }
+    public Func<Task<IEnumerable<TModel>>> ModelsAsync { get; private set; }
     public Func<IReadOnlyCollection<TModel>, Task<OneOf<None, Error>>> ConditionAsync { get; private set; }
     public Expression<Func<TModel, bool>> CommandFilter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; private set; }
-    public Func<List<TModel>, Task> UpdateManyFunc { get; private set; }
+    public Func<IReadOnlyCollection<TModel>, Task> UpdateManyFunc { get; private set; }
     public Error NullError { get; private set; }
     public Error SaveChangesError { get; private set; }
-    public Func<List<TModel>, TResult> ResultFunc { get; private set; }
+    public Func<IReadOnlyCollection<TModel>, TResult> ResultFunc { get; private set; }
 
     ISaveChangesManyErrorDetailResult<TModel, TResult> ICreateManyConditionResult<TModel, TResult>.WithCondition(
         Func<IReadOnlyCollection<TModel>, OneOf<None, Error>> condition)

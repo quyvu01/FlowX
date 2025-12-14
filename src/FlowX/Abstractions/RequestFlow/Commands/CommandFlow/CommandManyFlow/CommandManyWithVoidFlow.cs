@@ -17,24 +17,24 @@ public class CommandManyWithVoidFlow<TModel> :
     ICommandManyFlowBuilderVoid<TModel>
     where TModel : class
 {
-    public ICreateManyConditionVoid<TModel> CreateMany(Func<Task<List<TModel>>> modelsFunc)
+    public ICreateManyConditionVoid<TModel> CreateMany(Func<Task<IEnumerable<TModel>>> modelsAsync)
     {
         CommandTypeMany = CommandTypeMany.Create;
-        ModelsCreateFunc = modelsFunc;
+        ModelsAsync = modelsAsync;
         return this;
     }
 
-    public ICreateManyConditionVoid<TModel> CreateMany(Func<List<TModel>> modelsFunc)
+    public ICreateManyConditionVoid<TModel> CreateMany(Func<IEnumerable<TModel>> modelsFunc)
     {
         CommandTypeMany = CommandTypeMany.Create;
-        ModelsCreateFunc = () => Task.FromResult(modelsFunc.Invoke());
+        ModelsAsync = () => Task.FromResult(modelsFunc.Invoke());
         return this;
     }
 
-    public ICreateManyConditionVoid<TModel> CreateMany(List<TModel> models)
+    public ICreateManyConditionVoid<TModel> CreateMany(IEnumerable<TModel> models)
     {
         CommandTypeMany = CommandTypeMany.Create;
-        ModelsCreateFunc = () => Task.FromResult(models);
+        ModelsAsync = () => Task.FromResult(models);
         return this;
     }
 
@@ -52,13 +52,13 @@ public class CommandManyWithVoidFlow<TModel> :
         return this;
     }
 
-    public ISaveChangesManyErrorDetailVoid<TModel> WithModify(Func<List<TModel>, Task> updateFuncAsync)
+    public ISaveChangesManyErrorDetailVoid<TModel> WithModify(Func<IReadOnlyCollection<TModel>, Task> updateFuncAsync)
     {
         UpdateManyFunc = updateFuncAsync;
         return this;
     }
 
-    public ISaveChangesManyErrorDetailVoid<TModel> WithModify(Action<List<TModel>> updateFunc)
+    public ISaveChangesManyErrorDetailVoid<TModel> WithModify(Action<IReadOnlyCollection<TModel>> updateFunc)
     {
         UpdateManyFunc = models =>
         {
@@ -103,11 +103,11 @@ public class CommandManyWithVoidFlow<TModel> :
     }
 
     public CommandTypeMany CommandTypeMany { get; private set; } = CommandTypeMany.Unknown;
-    public Func<Task<List<TModel>>> ModelsCreateFunc { get; private set; }
+    public Func<Task<IEnumerable<TModel>>> ModelsAsync { get; private set; }
     public Func<IReadOnlyCollection<TModel>, Task<OneOf<None, Error>>> ConditionAsync { get; private set; }
     public Expression<Func<TModel, bool>> CommandFilter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; private set; }
-    public Func<List<TModel>, Task> UpdateManyFunc { get; private set; }
+    public Func<IReadOnlyCollection<TModel>, Task> UpdateManyFunc { get; private set; }
     public Error NullError { get; private set; }
     public Error SaveChangesError { get; private set; }
     public Func<List<TModel>> ResultFunc { get; private set; }
