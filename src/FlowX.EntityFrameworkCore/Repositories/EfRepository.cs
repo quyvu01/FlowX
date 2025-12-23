@@ -77,13 +77,15 @@ internal class EfRepository<TModel>(IServiceProvider serviceProvider) : IReposit
     public async Task<TModel> RemoveOneAsync(Expression<Func<TModel, bool>> filter, CancellationToken token = default)
     {
         var item = await _collection.FirstOrDefaultAsync(filter, token);
-        var result = await _collection.AddAsync(item, token);
+        if (item is null) throw new NullReferenceException();
+        var result = _collection.Remove(item);
         return result.Entity;
     }
 
     public async Task<TModel> RemoveOneAsync(TModel item, CancellationToken token = default)
     {
-        var result = await _collection.AddAsync(item, token);
+        await Task.Yield();
+        var result = _collection.Remove(item);
         return result.Entity;
     }
 
