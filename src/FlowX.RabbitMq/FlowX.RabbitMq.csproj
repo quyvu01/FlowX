@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <Version>5.0.1</Version>
+        <PackageId>FlowX.RabbitMq</PackageId>
+        <Description>FlowX.RabbitMq, RabbitMq extension.</Description>
+        <PackageTags>FlowX;open-source;entity-framework;RabitMq</PackageTags>
+        <RepositoryUrl>https://github.com/quyvu01/FlowX</RepositoryUrl>
+        <PackageIcon>FlowX.png</PackageIcon>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="[8.0.0, )"/>
+        <PackageReference Include="RabbitMQ.Client" Version="[7.0.0, )"/>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\FlowX\FlowX.csproj"/>
+    </ItemGroup>
+</Project>

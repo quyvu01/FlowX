@@ -67,7 +67,7 @@ internal sealed class AzureServiceBusClient<TRequest, TResult>
         }
 
         var result = await tcs.Task;
-        var resultWrapped = result.ToObjectFromJson<MessagingResponseWrapped<TResult>>();
+        var resultWrapped = result.ToObjectFromJson<MessagingWrapped<TResult>>();
         return resultWrapped.TypeAssembly is null
             ? resultWrapped.Response
             : throw ExceptionSerializableWrapper.ToException(resultWrapped.ExceptionSerializable);

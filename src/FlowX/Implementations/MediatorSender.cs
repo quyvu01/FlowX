@@ -9,7 +9,7 @@ namespace FlowX.Implementations;
 
 internal sealed class MediatorSender(IServiceProvider serviceProvider) : IMediator
 {
-    private static readonly ConcurrentDictionary<Type, Func<RequestHandlerWrapperBase>> _requestHandlers =
+    private static readonly ConcurrentDictionary<Type, Func<RequestHandlerWrapperBase>> RequestHandlers =
         new();
 
     public async Task<TResult> Send<TResult>(IRequest<TResult> request, CancellationToken cancellationToken = default)
@@ -21,7 +21,7 @@ internal sealed class MediatorSender(IServiceProvider serviceProvider) : IMediat
     private async Task<TResult> Send<TResult>(IRequest<TResult> request, FlowXContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var func = _requestHandlers.GetOrAdd(request.GetType(), static requestType =>
+        var func = RequestHandlers.GetOrAdd(request.GetType(), static requestType =>
         {
             var wrapperType = typeof(RequestHandlerWrapperImpl<,>).MakeGenericType(requestType, typeof(TResult));
             var ctor = wrapperType.GetConstructor(Type.EmptyTypes);
@@ -41,7 +41,7 @@ internal sealed class MediatorSender(IServiceProvider serviceProvider) : IMediat
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request is not IRequestBase) throw new FlowXExceptions.RequestIsNotRequestBase(request.GetType());
-        var handlerWrapper = _requestHandlers.GetOrAdd(request.GetType(), static rq =>
+        var handlerWrapper = RequestHandlers.GetOrAdd(request.GetType(), static rq =>
         {
             var interfaces = rq.GetInterfaces()
                 .Where(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRequest<>)).ToList();

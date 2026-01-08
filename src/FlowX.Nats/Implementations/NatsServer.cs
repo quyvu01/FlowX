@@ -43,12 +43,12 @@ internal class NatsServer<TRequest, TResult>(IServiceProvider serviceProvider)
             try
             {
                 var result = await pipeline.ExecuteAsync(requestContext);
-                var response = new MessagingResponseWrapped<TResult> { Response = result };
+                var response = new MessagingWrapped<TResult> { Response = result };
                 await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, response);
             }
             catch (Exception e)
             {
-                var exceptionAsResponse = new MessagingResponseWrapped<TResult>
+                var exceptionAsResponse = new MessagingWrapped<TResult>
                 {
                     ExceptionSerializable = ExceptionSerializableWrapper.FromException(e),
                     TypeAssembly = e.GetType().AssemblyQualifiedName

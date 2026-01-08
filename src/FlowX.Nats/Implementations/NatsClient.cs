@@ -19,7 +19,7 @@ internal sealed class NatsClient<TRequest, TResult>(NatsClientWrapper client)
         var messageWrapped = new MessageWrapper
             { MessageJson = JsonSerializer.Serialize(requestContext.Request) };
         var reply = await client.NatsClient
-            .RequestAsync<MessageWrapper, MessagingResponseWrapped<TResult>>(typeof(TRequest).GetNatsSubject(),
+            .RequestAsync<MessageWrapper, MessagingWrapped<TResult>>(typeof(TRequest).GetNatsSubject(),
                 messageWrapped, natsHeaders, cancellationToken: requestContext.CancellationToken);
         var result = reply.Data;
         if (result is null) throw new ArgumentNullException(nameof(result));

@@ -38,7 +38,7 @@ internal sealed class AzureServiceBusServerWorker(IServiceProvider serviceProvid
             }
             catch (Exception e)
             {
-                _logger?.LogError("Error while starting Nats: {@Message}", e.Message);
+                _logger?.LogError("Error while starting Azure Service Bus: {@Message}", e.Message);
             }
 
             await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);

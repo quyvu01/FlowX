@@ -2,6 +2,7 @@ using System.Reflection;
 using FlowX.EntityFrameworkCore.Extensions;
 using FlowX.Extensions;
 using FlowX.Nats.Extensions;
+using FlowX.RabbitMq.Extensions;
 using Service1;
 using Service1.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -21,11 +22,12 @@ builder.Services.AddDbContextPool<Service1DbContext>(options => options.UseNpgsq
     }), 128);
 
 builder.Services.AddFlowX(options =>
-{
-    options.AddHandlersFromNamespaceContaining<IAssemblyMarker>();
-    options.AddNats(config => config.Url("nats://localhost:4222"));
-})
-.AddEfCore(c => c.AddDbContexts(typeof(Service1DbContext)));
+    {
+        options.AddHandlersFromNamespaceContaining<IAssemblyMarker>();
+        // options.AddNats(config => config.Url("nats://localhost:4222"));
+        options.AddRabbitMq(c => c.Host("localhost", "/"));
+    })
+    .AddEfCore(c => c.AddDbContexts(typeof(Service1DbContext)));
 
 builder.Services.AddControllers();
 
