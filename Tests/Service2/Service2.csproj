@@ -17,6 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\src\FlowX.RabbitMq\FlowX.RabbitMq.csproj" />
         <ProjectReference Include="..\Service1.Contracts\Service1.Contracts.csproj"/>
         <ProjectReference Include="..\Service2.Contracts\Service2.Contracts.csproj"/>
     </ItemGroup>
