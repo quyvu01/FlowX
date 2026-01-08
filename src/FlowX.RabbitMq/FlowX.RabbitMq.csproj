@@ -20,4 +20,18 @@
     <ItemGroup>
         <ProjectReference Include="..\FlowX\FlowX.csproj"/>
     </ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\FlowX.png">
+            <Pack>True</Pack>
+            <PackagePath/>
+            <Link>FlowX.png</Link>
+        </None>
+    </ItemGroup>
+    <ItemGroup>
+        <None Update="README.md">
+            <Pack>true</Pack>
+            <PackagePath>/</PackagePath>
+        </None>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 </Project>

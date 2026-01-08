@@ -57,12 +57,8 @@ builder.Services.AddFlowX(cfg =>
 {
     cfg.AddModelsFromNamespaceContaining<ITestAssemblyMarker>();
     cfg.AddHandlersFromNamespaceContaining<ITestAssemblyMarker>();
-    cfg.AddDbContextDynamic<TestDbContext>(options =>
-    {
-        options.AddDynamicRepositories();
-        options.AddDynamicUnitOfWork();
-    });
-});
+})
+.AddEfCore(c => c.AddDbContexts(typeof(SomeDbContext)));
 ```
 
 Examples:
