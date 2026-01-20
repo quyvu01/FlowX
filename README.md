@@ -10,6 +10,8 @@ implementing CQRS (Command Query Responsibility Segregation) patterns.
 
 - Fluent API for building Request Flows.
 - Error handling mechanisms with custom error definitions.
+- **Result Pattern** - Unified response wrapper with `Result<T>` for handling success/failure scenarios.
+- **Flexible Sorting** - Support for multiple sort fields with fluent API (`Asc`, `Desc`, `ThenBy`, `ThenDescBy`).
 
 ## Notes
 > [!WARNING]  
@@ -115,6 +117,35 @@ Like the Mediator Pattern, you don't need to care about the handler and how it d
 Flow enables the creation of requests in a structured and intuitive way. Each flow defines a step-by-step process that
 ensures reliability and maintainability.
 
+### Query Sorting
+
+FlowX supports flexible sorting with multiple fields using a fluent API:
+
+```csharp
+public sealed class GetProvincesHandler : EfQueryCollectionHandler<Province, GetProvincesQuery, ProvinceResponse>
+{
+    protected override IQueryListFlowBuilder<Province, ProvinceResponse> BuildQueryFlow(
+        IQueryListFilter<Province, ProvinceResponse> fromFlow, IRequestContext<GetProvincesQuery> queryContext)
+        => fromFlow
+            .WithFilter(null)
+            .WithSpecialAction(a => a.Select(x => new ProvinceResponse { Id = x.Id, Name = x.Name }))
+            .WithDefaultSortFields(Asc(a => a.Name).ThenDescBy(x => x.Id));
+}
+```
+
+Available sort methods:
+- `Asc(expression)` - Sort ascending by a field
+- `Desc(expression)` - Sort descending by a field
+- `ThenBy(expression)` - Then sort ascending
+- `ThenDescBy(expression)` - Then sort descending
+
+For pagination queries, clients can also specify sort fields via the `SortedFields` parameter:
+
+```csharp
+// Request with dynamic sorting
+var query = new GetManyQuery(PageSize: 10, PageIndex: 1, SortedFields: "Name asc, Id desc");
+```
+
 #### Error Handling
 
 Errors in FlowX are predefined, enabling consistent error messaging across your application.
@@ -129,7 +160,7 @@ We welcome contributions to FlowX! To contribute, please:
 
 ## License
 
-FlowX is licensed under the MIT License. See `LICENSE` for more details.
+FlowX is licensed under the Apache License Version 2.0. See `LICENSE` for more details.
 
 ## Contact
 
