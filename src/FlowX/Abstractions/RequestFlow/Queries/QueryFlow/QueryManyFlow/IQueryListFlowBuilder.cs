@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using FlowX.Structs;
 
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 
@@ -10,6 +9,5 @@ public interface IQueryListFlowBuilder<TModel, out TResponse> where TModel : cla
     Func<IQueryable<TModel>, IQueryable<TModel>> SpecialActionToModel { get; }
     Func<IQueryable<TModel>, IQueryable<TResponse>> SpecialActionToResponse { get; }
     Func<TModel, TResponse> MapFunc { get; }
-    Expression<Func<TModel, object>> SortFieldNameWhenRequestEmpty { get; }
-    SortedDirection SortedDirectionWhenRequestEmpty { get; }
+    ExpressionOrder<TModel> ExpressionOrder { get; }
 }

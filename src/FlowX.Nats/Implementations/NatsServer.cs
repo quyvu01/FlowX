@@ -4,7 +4,7 @@ using FlowX.Implementations;
 using FlowX.Nats.Abstractions;
 using FlowX.Nats.Extensions;
 using FlowX.Nats.Wrappers;
-using FlowX.Wrappers;
+using FlowX.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NATS.Client.Core;
@@ -43,17 +43,14 @@ internal class NatsServer<TRequest, TResult>(IServiceProvider serviceProvider)
             try
             {
                 var result = await pipeline.ExecuteAsync(requestContext);
-                var response = new MessagingWrapped<TResult> { Response = result };
-                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, response);
+
+                var resultSucceed = Result<TResult>.Success(result);
+                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, resultSucceed);
             }
             catch (Exception e)
             {
-                var exceptionAsResponse = new MessagingWrapped<TResult>
-                {
-                    ExceptionSerializable = ExceptionSerializableWrapper.FromException(e),
-                    TypeAssembly = e.GetType().AssemblyQualifiedName
-                };
-                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, exceptionAsResponse);
+                var faultResult = Result<TResult>.Failed(e);
+                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, faultResult);
             }
         }
         catch (Exception e)

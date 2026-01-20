@@ -73,7 +73,7 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
                     .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
                 headerInjector.Headers = headers;
                 var response = await mediator.Send(message, ea.CancellationToken);
-                var result = MessagingWrappedDynamic.NewMessagingWrapper(responseType, response, null);
+                var result = ResultWrapped.NewResultWrapper(responseType, response, null);
                 var responseAsString = JsonSerializer.Serialize(result);
                 var responseBytes = Encoding.UTF8.GetBytes(responseAsString);
                 await ch.BasicPublishAsync(exchange: string.Empty, routingKey: props.ReplyTo!,
@@ -84,7 +84,7 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
             {
                 var logger = serviceProvider.GetService<ILogger<RabbitMqServer>>();
                 logger.LogError("Error while responding <{@Attribute}> with message : {@Error}", props.Type, e);
-                var result = MessagingWrappedDynamic.NewMessagingWrapper(responseType, null, e);
+                var result = ResultWrapped.NewResultWrapper(responseType, null, e);
                 var responseAsString = JsonSerializer.Serialize(result);
                 var responseBytes = Encoding.UTF8.GetBytes(responseAsString);
                 await ch.BasicPublishAsync(exchange: string.Empty, routingKey: props.ReplyTo!,

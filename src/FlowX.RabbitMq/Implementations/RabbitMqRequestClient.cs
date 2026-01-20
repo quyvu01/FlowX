@@ -7,7 +7,7 @@ using FlowX.RabbitMq.Abstractions;
 using FlowX.RabbitMq.Constants;
 using FlowX.RabbitMq.Extensions;
 using FlowX.RabbitMq.Statics;
-using FlowX.Wrappers;
+using FlowX.Responses;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -87,10 +87,7 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
             tcs.SetCanceled(cancellationToken);
         });
         var result = await tcs.Task;
-        var resultWrapped = JsonSerializer.Deserialize<MessagingWrapped<TResult>>(
-            Encoding.UTF8.GetString(result.Body.ToArray()));
-        return resultWrapped.TypeAssembly is null
-            ? resultWrapped.Response
-            : throw ExceptionSerializableWrapper.ToException(resultWrapped.ExceptionSerializable);
+        var resultWrapped = JsonSerializer.Deserialize<Result<TResult>>(Encoding.UTF8.GetString(result.Body.ToArray()));
+        return resultWrapped.IsSuccess ? resultWrapped.Data : throw resultWrapped.Fault.ToException();
     }
 }

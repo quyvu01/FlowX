@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryMany;
 
 public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>
-    : IQueryHandler<TQuery, CollectionResponse<TResponse>>
+    : EfQueryManyBased<TModel, TQuery, TResponse>, IQueryHandler<TQuery, CollectionResponse<TResponse>>
     where TModel : class
     where TQuery : IQueryCollection<TResponse>
     where TResponse : class
@@ -31,8 +31,7 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>
                         var finalFilter = buildResult.SpecialActionToModel?.Invoke(db) ?? db;
                         return finalFilter
                             .AsNoTracking()
-                            .OrderByWithDynamic(null, buildResult.SortFieldNameWhenRequestEmpty,
-                                buildResult.SortedDirectionWhenRequestEmpty);
+                            .OrderDynamicOrDefault(null, buildResult.ExpressionOrder.ExpressionDetails);
                     }, requestContext.CancellationToken);
                 var itemsResponse = items.Select(a => buildResult.MapFunc.Invoke(a)).ToList();
                 return new CollectionResponse<TResponse>(itemsResponse);
@@ -42,8 +41,7 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>
                     .GetQueryable(buildResult.Filter)
                     .AsNoTracking();
                 var queryable = srcQueryable
-                    .OrderByWithDynamic(null, buildResult.SortFieldNameWhenRequestEmpty,
-                        buildResult.SortedDirectionWhenRequestEmpty);
+                    .OrderDynamicOrDefault(null, buildResult.ExpressionOrder.ExpressionDetails);
                 var response = await buildResult.SpecialActionToResponse.Invoke(queryable)
                     .ToListAsync(requestContext.CancellationToken);
                 return new CollectionResponse<TResponse>(response);
@@ -52,7 +50,4 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>
                 throw new UnreachableException("Query special type could not be unknown!");
         }
     }
-
-    protected abstract IQueryListFlowBuilder<TModel, TResponse> BuildQueryFlow(
-        IQueryListFilter<TModel, TResponse> fromFlow, IRequestContext<TQuery> queryContext);
 }

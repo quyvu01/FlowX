@@ -1,7 +1,6 @@
 using System.Reflection;
 using FlowX.EntityFrameworkCore.Extensions;
 using FlowX.Extensions;
-using FlowX.Nats.Extensions;
 using FlowX.RabbitMq.Extensions;
 using Service1;
 using Service1.Contexts;

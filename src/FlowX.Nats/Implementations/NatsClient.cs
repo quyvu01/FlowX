@@ -4,7 +4,7 @@ using FlowX.Extensions;
 using FlowX.Nats.Abstractions;
 using FlowX.Nats.Extensions;
 using FlowX.Nats.Wrappers;
-using FlowX.Wrappers;
+using FlowX.Responses;
 using NATS.Client.Core;
 
 namespace FlowX.Nats.Implementations;
@@ -19,12 +19,8 @@ internal sealed class NatsClient<TRequest, TResult>(NatsClientWrapper client)
         var messageWrapped = new MessageWrapper
             { MessageJson = JsonSerializer.Serialize(requestContext.Request) };
         var reply = await client.NatsClient
-            .RequestAsync<MessageWrapper, MessagingWrapped<TResult>>(typeof(TRequest).GetNatsSubject(),
+            .RequestAsync<MessageWrapper, Result<TResult>>(typeof(TRequest).GetNatsSubject(),
                 messageWrapped, natsHeaders, cancellationToken: requestContext.CancellationToken);
-        var result = reply.Data;
-        if (result is null) throw new ArgumentNullException(nameof(result));
-        return result.TypeAssembly is null
-            ? result.Response
-            : throw ExceptionSerializableWrapper.ToException(result.ExceptionSerializable);
+        return reply.Data!.IsSuccess ? reply.Data.Data : throw reply.Data!.Fault.ToException();
     }
 }

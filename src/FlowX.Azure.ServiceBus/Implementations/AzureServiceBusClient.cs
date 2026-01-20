@@ -7,6 +7,7 @@ using FlowX.Azure.ServiceBus.Extensions;
 using FlowX.Azure.ServiceBus.Statics;
 using FlowX.Azure.ServiceBus.Wrappers;
 using FlowX.Extensions;
+using FlowX.Responses;
 using FlowX.Statics;
 using FlowX.Wrappers;
 
@@ -67,10 +68,8 @@ internal sealed class AzureServiceBusClient<TRequest, TResult>
         }
 
         var result = await tcs.Task;
-        var resultWrapped = result.ToObjectFromJson<MessagingWrapped<TResult>>();
-        return resultWrapped.TypeAssembly is null
-            ? resultWrapped.Response
-            : throw ExceptionSerializableWrapper.ToException(resultWrapped.ExceptionSerializable);
+        var resultWrapped = result.ToObjectFromJson<Result<TResult>>();
+        return resultWrapped.IsSuccess ? resultWrapped.Data : throw resultWrapped.Fault.ToException();
     }
 
     private async Task ProcessReplyAsync(ProcessSessionMessageEventArgs args)

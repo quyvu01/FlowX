@@ -1,83 +1,116 @@
-using System.Linq.Expressions;
-using System.Reflection;
+using System.Text.RegularExpressions;
+using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 using FlowX.DynamicExpression;
-using FlowX.Structs;
 
 namespace FlowX.Extensions;
 
-public static class Extensions
+public static partial class Extensions
 {
-    public static void ForEach<T>(this IEnumerable<T> src, Action<T> action)
+    extension<T>(IEnumerable<T> src)
     {
-        foreach (var item in src ?? []) action?.Invoke(item);
+        public void ForEach(Action<T> action)
+        {
+            foreach (var item in src ?? []) action?.Invoke(item);
+        }
+
+        public void IteratorVoid() => src.ForEach(_ => { });
     }
 
-    public static void IteratorVoid<T>(this IEnumerable<T> src) => src.ForEach(_ => { });
-
-    public static IOrderedQueryable<T> OrderByWithDynamic<T>(this IQueryable<T> src, string fieldName,
-        Expression<Func<T, object>> defaultOrError,
-        SortedDirection sortedDirection)
+    extension<T>(IQueryable<T> src)
     {
-        Func<Expression<Func<T, object>>, SortedDirection?, IOrderedQueryable<T>> getOrdered =
-            (expression, direction) => direction is SortedDirection.Ascending
-                ? src.OrderBy(expression)
-                : src.OrderByDescending(expression);
-        if (string.IsNullOrEmpty(fieldName)) return getOrdered.Invoke(defaultOrError, sortedDirection);
-        try
+        public IQueryable<T> Offset(int? skip) =>
+            skip is null ? src : src.Skip(skip.Value);
+
+        public IQueryable<T> Limit(int? take) =>
+            take is null ? src : src.Take(take.Value);
+
+        public IOrderedQueryable<T> OrderDynamicOrDefault(string sortedFields,
+            IReadOnlyList<ExpressionOrderDetail<T>> defaultOrders)
         {
+            if (string.IsNullOrEmpty(sortedFields))
+            {
+                switch (defaultOrders.Count)
+                {
+                    case 0:
+                        throw new ArgumentException("Default Order cannot be empty", nameof(defaultOrders));
+                    case 1:
+                    {
+                        var orderDetail = defaultOrders[0];
+                        return orderDetail.IsAsc
+                            ? src.OrderBy(orderDetail.Expression)
+                            : src.OrderByDescending(orderDetail.Expression);
+                    }
+                }
+
+                var defaultOrder = defaultOrders[0];
+                var orderByQueryable = defaultOrder.IsAsc
+                    ? src.OrderBy(defaultOrder.Expression)
+                    : src.OrderByDescending(defaultOrder.Expression);
+                return defaultOrders.Skip(1).Aggregate(orderByQueryable,
+                    (acc, next) => next.IsAsc ? acc.ThenBy(next.Expression) : acc.ThenByDescending(next.Expression));
+            }
+
             var interpreter = new Interpreter(InterpreterOptions.DefaultCaseInsensitive);
-            var expressionStr = $"x.{fieldName}";
-            var expressionFilter = interpreter.ParseAsExpression<Func<T, object>>(expressionStr, "x");
-            return getOrdered.Invoke(expressionFilter, sortedDirection);
+            var orderDetails = sortedFields
+                .Split(',')
+                .Select(a => a.Trim())
+                .Select(a =>
+                {
+                    if (!TryParseOrderBy(a, out var property, out var isAsc))
+                        throw new ArgumentException(
+                            $"'{a}' is not a valid segment. Only $Property | $Property asc|desc is allowed!");
+                    var expressionStr = $"x.{property}";
+                    var expressionFilter = interpreter.ParseAsExpression<Func<T, object>>(expressionStr, "x");
+                    return new ExpressionOrderDetail<T>(expressionFilter, isAsc);
+                });
+            return src.OrderDynamicOrDefault(null, [..orderDetails]);
         }
-        catch (Exception)
+    }
+
+    private static readonly Regex OrderByRegex = MyRegex();
+
+    public static bool TryParseOrderBy(string input, out string property, out bool isAsc)
+    {
+        property = string.Empty;
+        isAsc = true;
+
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        var match = OrderByRegex.Match(input.Trim());
+        if (!match.Success) return false;
+
+        property = match.Groups["prop"].Value;
+
+        var dir = match.Groups["dir"].Value;
+        isAsc = !dir.Equals("desc", StringComparison.OrdinalIgnoreCase);
+        return true;
+    }
+
+
+    extension(Type type)
+    {
+        public bool IsConcrete() => !type.IsAbstract && !type.IsInterface;
+        public bool IsOpenGeneric() => type.IsGenericTypeDefinition || type.ContainsGenericParameters;
+
+        public bool CanBeCastTo(Type pluginType)
         {
-            return getOrdered.Invoke(defaultOrError, sortedDirection);
+            if (type is null) return false;
+            return type == pluginType || pluginType.IsAssignableFrom(type);
         }
-    }
 
-    private static Expression<Func<T, object>> BuildPropertyExpression<T>(string propertyName)
-    {
-        //Todo: update this one later to improve the performance, consider update or not!
-        var type = typeof(T);
-        var property = type.GetProperty(propertyName,
-            BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-        if (property == null)
-            throw new ArgumentException($"Property '{propertyName}' not found on type '{type.Name}'.");
-        var parameter = Expression.Parameter(type, "x");
-        var propertyAccess = Expression.Property(parameter, property);
-        var convertedProperty = Expression.Convert(propertyAccess, typeof(object));
-        return Expression.Lambda<Func<T, object>>(convertedProperty, parameter);
-    }
+        public bool CouldCloseTo(Type closedInterface)
+        {
+            var openInterface = closedInterface.GetGenericTypeDefinition();
+            var arguments = closedInterface.GenericTypeArguments;
 
-    public static IQueryable<T> Offset<T>(this IQueryable<T> src, int? skip) =>
-        skip is null ? src : src.Skip(skip.Value);
+            var concreteArguments = type.GenericTypeArguments;
+            return arguments.Length == concreteArguments.Length && type.CanBeCastTo(openInterface);
+        }
 
-    public static IQueryable<T> Limit<T>(this IQueryable<T> src, int? take) =>
-        take is null ? src : src.Take(take.Value);
-
-    public static bool IsConcrete(this Type type) => !type.IsAbstract && !type.IsInterface;
-
-    public static bool IsOpenGeneric(this Type type) => type.IsGenericTypeDefinition || type.ContainsGenericParameters;
-
-    public static bool CanBeCastTo(this Type pluggedType, Type pluginType)
-    {
-        if (pluggedType is null) return false;
-        return pluggedType == pluginType || pluginType.IsAssignableFrom(pluggedType);
-    }
-
-    public static bool CouldCloseTo(this Type openConcretion, Type closedInterface)
-    {
-        var openInterface = closedInterface.GetGenericTypeDefinition();
-        var arguments = closedInterface.GenericTypeArguments;
-
-        var concreteArguments = openConcretion.GenericTypeArguments;
-        return arguments.Length == concreteArguments.Length && openConcretion.CanBeCastTo(openInterface);
-    }
-
-    public static IEnumerable<Type> FindInterfacesThatClose(this Type pluggedType, Type templateType)
-    {
-        return FindInterfacesThatClosesCore(pluggedType, templateType).Distinct();
+        public IEnumerable<Type> FindInterfacesThatClose(Type templateType)
+        {
+            return FindInterfacesThatClosesCore(type, templateType).Distinct();
+        }
     }
 
     public static IEnumerable<Type> FindInterfacesThatClosesCore(Type pluggedType, Type templateType)
@@ -115,4 +148,8 @@ public static class Extensions
         if (list.Contains(value)) return;
         list.Add(value);
     }
+
+    [GeneratedRegex(@"^(?<prop>[A-Za-z_][A-Za-z0-9_]*)(\s+(?<dir>asc|desc))?$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-VN")]
+    private static partial Regex MyRegex();
 }

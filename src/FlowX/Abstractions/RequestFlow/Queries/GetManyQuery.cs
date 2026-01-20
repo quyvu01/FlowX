@@ -1,10 +1,8 @@
-﻿using FlowX.Structs;
+﻿namespace FlowX.Abstractions.RequestFlow.Queries;
 
-namespace FlowX.Abstractions.RequestFlow.Queries;
-
-public record GetManyQuery(int? PageSize, int? PageIndex, string SortedFieldName, SortedDirection? SortedDirection)
+public record GetManyQuery(int? PageSize, int? PageIndex, string SortedFields)
 {
-    public GetManyQuery() : this(null, null, null, null)
+    public GetManyQuery() : this(null, null, null)
     {
     }
 

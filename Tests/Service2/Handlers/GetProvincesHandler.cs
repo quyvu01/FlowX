@@ -1,7 +1,6 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 using FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryMany;
-using FlowX.Structs;
 using Service2.Contracts.Requests;
 using Service2.Contracts.Responses;
 using Service2.Models;
@@ -16,6 +15,5 @@ public sealed class GetProvincesHandler
         => fromFlow
             .WithFilter(null)
             .WithSpecialAction(a => a.Select(x => new ProvinceResponse { Id = x.Id, Name = x.Name }))
-            .WithSortFieldWhenNotSet(x => x.Name)
-            .WithSortedDirectionWhenNotSet(SortedDirection.Ascending);
+            .WithDefaultSortFields(Asc(a => a.Name).ThenDescBy(x => x.Id));
 }

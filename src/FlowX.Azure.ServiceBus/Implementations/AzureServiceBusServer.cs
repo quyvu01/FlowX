@@ -6,8 +6,8 @@ using FlowX.Azure.ServiceBus.Extensions;
 using FlowX.Azure.ServiceBus.Statics;
 using FlowX.Azure.ServiceBus.Wrappers;
 using FlowX.Implementations;
+using FlowX.Responses;
 using FlowX.Statics;
-using FlowX.Wrappers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -44,7 +44,7 @@ internal class AzureServiceBusServer<TRequest, TResult>(
             var headers = message.ApplicationProperties?
                 .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
             var request = JsonSerializer.Deserialize<TRequest>(messageWrapper.MessageJson);
-            
+
             var requestContext = new FlowContext<TRequest>(request, headers, CancellationToken.None);
             var sender = clientWrapper.ServiceBusClient.CreateSender(message.ReplyTo);
 
@@ -54,8 +54,8 @@ internal class AzureServiceBusServer<TRequest, TResult>(
             try
             {
                 var result = await pipeline.ExecuteAsync(requestContext);
-                var response = new MessagingWrapped<TResult> { Response = result };
-                var responseMessage = new ServiceBusMessage(JsonSerializer.Serialize(response))
+                var succeedResult = Result<TResult>.Success(result);
+                var responseMessage = new ServiceBusMessage(JsonSerializer.Serialize(succeedResult))
                 {
                     CorrelationId = message.CorrelationId,
                     SessionId = message.SessionId
@@ -65,12 +65,8 @@ internal class AzureServiceBusServer<TRequest, TResult>(
             }
             catch (Exception e)
             {
-                var exceptionAsResponse = new MessagingWrapped<TResult>
-                {
-                    ExceptionSerializable = ExceptionSerializableWrapper.FromException(e),
-                    TypeAssembly = e.GetType().AssemblyQualifiedName
-                };
-                var responseMessage = new ServiceBusMessage(JsonSerializer.Serialize(exceptionAsResponse))
+                var faultResult = Result<TResult>.Failed(e);
+                var responseMessage = new ServiceBusMessage(JsonSerializer.Serialize(faultResult))
                 {
                     CorrelationId = message.CorrelationId,
                     SessionId = message.SessionId

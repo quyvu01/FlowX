@@ -11,14 +11,11 @@ using Microsoft.EntityFrameworkCore;
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryMany;
 
 public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>
-    : IQueryHandler<TQuery, PaginationResponse<TResponse>>
+    : EfQueryManyBased<TModel, TQuery, TResponse>, IQueryHandler<TQuery, PaginationResponse<TResponse>>
     where TModel : class
     where TQuery : GetManyQuery, IQueryPaged<TResponse>
     where TResponse : class
 {
-    protected abstract IQueryListFlowBuilder<TModel, TResponse> BuildQueryFlow(
-        IQueryListFilter<TModel, TResponse> fromFlow, IRequestContext<TQuery> queryContext);
-
     public virtual async Task<PaginationResponse<TResponse>> HandleAsync(IRequestContext<TQuery> requestContext)
     {
         var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
@@ -32,9 +29,8 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>
                     .GetQueryable(buildResult.Filter)
                     .AsNoTracking();
                 var toModelQueryable = toModelSrcQueryable
-                    .OrderByWithDynamic(requestContext.Request.SortedFieldName,
-                        buildResult.SortFieldNameWhenRequestEmpty,
-                        requestContext.Request.SortedDirection ?? buildResult.SortedDirectionWhenRequestEmpty);
+                    .OrderDynamicOrDefault(requestContext.Request.SortedFields,
+                        buildResult.ExpressionOrder.ExpressionDetails);
                 var toModelFinalQueryable = buildResult.SpecialActionToModel.Invoke(toModelQueryable);
                 var toModelResponse = await toModelFinalQueryable
                     .Offset(requestContext.Request.Skip())
@@ -50,9 +46,8 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>
                     .AsNoTracking();
 
                 var queryable = srcQueryable
-                    .OrderByWithDynamic(requestContext.Request.SortedFieldName,
-                        buildResult.SortFieldNameWhenRequestEmpty,
-                        requestContext.Request.SortedDirection ?? buildResult.SortedDirectionWhenRequestEmpty);
+                    .OrderDynamicOrDefault(requestContext.Request.SortedFields,
+                        buildResult.ExpressionOrder.ExpressionDetails);
                 var finalQueryable = buildResult.SpecialActionToResponse.Invoke(queryable);
                 var response = await finalQueryable
                     .Offset(requestContext.Request.Skip())
