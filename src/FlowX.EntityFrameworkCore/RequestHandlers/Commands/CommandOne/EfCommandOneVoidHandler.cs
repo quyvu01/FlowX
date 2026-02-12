@@ -9,14 +9,14 @@ using FlowX.Structs;
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandOne;
 
 public abstract class EfCommandOneVoidHandler<TModel, TCommand>
-    : ICommandHandler<TCommand, None>
+    : ICommandHandler<TCommand>
     where TModel : class
     where TCommand : class, ICommandVoid
 {
     protected abstract ICommandOneFlowBuilderVoid<TModel> BuildCommand(
         IStartOneCommandVoid<TModel> fromFlow, IRequestContext<TCommand> commandContext);
 
-    public virtual async Task<None> HandleAsync(IRequestContext<TCommand> requestContext)
+    public virtual async Task HandleAsync(IRequestContext<TCommand> requestContext)
     {
         var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
         var repository = unitOfWork.RepositoryOf<TModel>();
@@ -86,7 +86,5 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
 
         if (buildResult.AfterExecutionFunc is { } afterFunc)
             await afterFunc.Invoke(item);
-
-        return None.Value;
     }
 }

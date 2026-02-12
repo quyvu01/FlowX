@@ -59,3 +59,52 @@ internal class NatsServer<TRequest, TResult>(IServiceProvider serviceProvider)
         }
     }
 }
+
+internal class NatsServer<TRequest>(IServiceProvider serviceProvider)
+    : INatsServer<TRequest> where TRequest : IRequest
+{
+    private readonly ILogger<NatsServer<TRequest>> _logger =
+        serviceProvider.GetService<ILogger<NatsServer<TRequest>>>();
+
+    private readonly NatsClientWrapper _natsClient = serviceProvider.GetRequiredService<NatsClientWrapper>();
+
+    public async Task SubscribeAsync()
+    {
+        var natsClient = serviceProvider.GetRequiredService<NatsClientWrapper>();
+        var natsScribeAsync = natsClient.NatsClient
+            .SubscribeAsync<MessageWrapper>(typeof(TRequest).GetNatsSubject());
+        await foreach (var message in natsScribeAsync) _ = ProcessMessageAsync(message);
+    }
+
+    private async Task ProcessMessageAsync(NatsMsg<MessageWrapper> message)
+    {
+        try
+        {
+            if (message.Data is not { } data) return;
+            using var scope = serviceProvider.CreateScope();
+            var pipeline = scope.ServiceProvider
+                .GetRequiredService<FlowPipelinesImpl<TRequest>>();
+            var request = JsonSerializer.Deserialize<TRequest>(data.MessageJson);
+            var headers = message.Headers?
+                .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
+            var requestContext = new FlowContext<TRequest>(request, headers, CancellationToken.None);
+            // Invoke the method and get the result
+            try
+            {
+                await pipeline.ExecuteAsync(requestContext);
+
+                var resultSucceed = Result.Success();
+                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, resultSucceed);
+            }
+            catch (Exception e)
+            {
+                var faultResult = Result.Failed(e);
+                await _natsClient.NatsClient.PublishAsync(message.ReplyTo!, faultResult);
+            }
+        }
+        catch (Exception e)
+        {
+            _logger?.LogError("Error while process request: {@Error}", e.Message);
+        }
+    }
+}

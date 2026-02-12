@@ -8,14 +8,14 @@ using FlowX.Structs;
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandMany;
 
 public abstract class EfCommandManyVoidHandler<TModel, TCommand>
-    : ICommandHandler<TCommand, None>
+    : ICommandHandler<TCommand>
     where TModel : class
     where TCommand : class, ICommandVoid
 {
     protected abstract ICommandManyFlowBuilderVoid<TModel> BuildCommand(
         IStartManyCommandVoid<TModel> fromFlow, IRequestContext<TCommand> commandContext);
 
-    public virtual async Task<None> HandleAsync(IRequestContext<TCommand> requestContext)
+    public virtual async Task HandleAsync(IRequestContext<TCommand> requestContext)
     {
         var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
         var repository = unitOfWork.RepositoryOf<TModel>();
@@ -62,6 +62,5 @@ public abstract class EfCommandManyVoidHandler<TModel, TCommand>
         }
 
         await unitOfWork.SaveChangesAsync(requestContext.CancellationToken);
-        return None.Value;
     }
 }

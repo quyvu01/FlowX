@@ -13,4 +13,11 @@ public sealed class RabbitMqTransportService(IServiceProvider serviceProvider) :
         var result = await requestClient.RequestAsync<TRequest, TResult>(requestContext);
         return result;
     }
+
+    public async Task TransportDataAsync<TRequest>(IRequestContext<TRequest> requestContext)
+        where TRequest : IRequest
+    {
+        var requestClient = serviceProvider.GetService<IRequestClient>();
+        await requestClient.SendAsync(requestContext);
+    }
 }

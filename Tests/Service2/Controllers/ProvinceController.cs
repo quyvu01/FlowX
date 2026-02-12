@@ -11,8 +11,8 @@ public sealed class ProvinceController(IMediator sender) : ControllerBase
     public async Task<IActionResult> CreateProvince([FromBody] CreateProvinceCommand command,
         CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(command, cancellationToken);
-        return Ok(result);
+        await sender.Send(command, cancellationToken);
+        return Ok();
     }
 
     [HttpGet]

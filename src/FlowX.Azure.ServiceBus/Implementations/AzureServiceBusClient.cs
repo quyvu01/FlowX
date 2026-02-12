@@ -85,3 +85,76 @@ internal sealed class AzureServiceBusClient<TRequest, TResult>
         if (_replyProcessor != null) await _replyProcessor.DisposeAsync();
     }
 }
+
+internal sealed class AzureServiceBusClient<TRequest>
+    : IAzureServiceBusClient<TRequest>, IAsyncDisposable where TRequest : IRequest
+{
+    private readonly ServiceBusSender _serviceBusSender;
+    private readonly ServiceBusSessionProcessor _replyProcessor;
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<BinaryData>> _pendingReplies = new();
+    private readonly string _sessionId;
+    private readonly string _replyQueueName;
+
+    public AzureServiceBusClient(AzureServiceBusClientWrapper clientWrapper)
+    {
+        var client = clientWrapper.ServiceBusClient;
+        _sessionId = Guid.NewGuid().ToString();
+        var requestQueueName = typeof(TRequest).GetAzureServiceBusRequestQueue();
+        _replyQueueName = typeof(TRequest).GetAzureServiceBusReplyQueue();
+        _serviceBusSender = client.CreateSender(requestQueueName);
+        _replyProcessor = client.CreateSessionProcessor(_replyQueueName, new ServiceBusSessionProcessorOptions
+        {
+            AutoCompleteMessages = false,
+            MaxConcurrentSessions = AzureServiceBusStatic.MaxConcurrentSessions,
+            MaxConcurrentCallsPerSession = 1,
+            SessionIds = { _sessionId }
+        });
+
+        _replyProcessor.ProcessMessageAsync += ProcessReplyAsync;
+        _replyProcessor.ProcessErrorAsync += _ => Task.CompletedTask;
+        _replyProcessor.StartProcessingAsync().Wait();
+    }
+
+    public async Task RequestAsync(IRequestContext<TRequest> requestContext)
+    {
+        var correlationId = Guid.NewGuid().ToString();
+        var tcs = new TaskCompletionSource<BinaryData>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingReplies[correlationId] = tcs;
+        var messageWrapped = new MessageWrapper
+            { MessageJson = JsonSerializer.Serialize(requestContext.Request) };
+
+        var messageSerialize = JsonSerializer.Serialize(messageWrapped);
+        var requestMessage = new ServiceBusMessage(messageSerialize)
+        {
+            CorrelationId = correlationId,
+            ReplyTo = _replyQueueName,
+            SessionId = _sessionId
+        };
+        requestContext.Headers?.ForEach(h => requestMessage.ApplicationProperties.Add(h.Key, h.Value));
+        await _serviceBusSender.SendMessageAsync(requestMessage, requestContext.CancellationToken);
+        var taskAny = await Task.WhenAny(tcs.Task, Task.Delay(FlowXStatics.DefaultRequestTimeout));
+        if (taskAny != tcs.Task)
+        {
+            var exception = new TimeoutException($"Timeout waiting for {nameof(ServiceBusMessage)} to complete!");
+            tcs.TrySetException(exception);
+            throw exception;
+        }
+
+        var result = await tcs.Task;
+        var resultWrapped = result.ToObjectFromJson<Result>();
+        if (!resultWrapped.IsSuccess) throw resultWrapped.Fault.ToException();
+    }
+
+    private async Task ProcessReplyAsync(ProcessSessionMessageEventArgs args)
+    {
+        var msg = args.Message;
+        if (_pendingReplies.TryRemove(msg.CorrelationId, out var tcs)) tcs.TrySetResult(msg.Body);
+        await args.CompleteMessageAsync(msg);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_serviceBusSender != null) await _serviceBusSender.DisposeAsync();
+        if (_replyProcessor != null) await _replyProcessor.DisposeAsync();
+    }
+}

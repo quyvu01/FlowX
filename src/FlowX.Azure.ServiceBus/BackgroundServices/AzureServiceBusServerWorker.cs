@@ -28,11 +28,22 @@ internal sealed class AzureServiceBusServerWorker(IServiceProvider serviceProvid
                 {
                     var (requestType, responseType) = requestMapResponseType;
                     await CreateQueueIfNotExistedAsync(requestType.GetAzureServiceBusRequestQueue(), stoppingToken);
-                    await CreateQueueIfNotExistedAsync(responseType.GetAzureServiceBusReplyQueue(), stoppingToken);
-                    var service = serviceProvider.GetRequiredService(typeof(IAzureServiceBusServer<,>)
-                        .MakeGenericType(requestType, responseType));
-                    if (service is not IAzureServiceBusServer serviceBusServer) return;
-                    await serviceBusServer.StartAsync();
+                    if (responseType == typeof(void))
+                    {
+                        await CreateQueueIfNotExistedAsync(requestType.GetAzureServiceBusReplyQueue(), stoppingToken);
+                        var service = serviceProvider.GetRequiredService(typeof(IAzureServiceBusServer<>)
+                            .MakeGenericType(requestType));
+                        if (service is not IAzureServiceBusServer serviceBusServer) return;
+                        await serviceBusServer.StartAsync();
+                    }
+                    else
+                    {
+                        await CreateQueueIfNotExistedAsync(responseType.GetAzureServiceBusReplyQueue(), stoppingToken);
+                        var service = serviceProvider.GetRequiredService(typeof(IAzureServiceBusServer<,>)
+                            .MakeGenericType(requestType, responseType));
+                        if (service is not IAzureServiceBusServer serviceBusServer) return;
+                        await serviceBusServer.StartAsync();
+                    }
                 });
                 await Task.WhenAll(tasks);
             }

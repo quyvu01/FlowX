@@ -8,6 +8,7 @@ using FlowX.RabbitMq.Constants;
 using FlowX.RabbitMq.Extensions;
 using FlowX.RabbitMq.Internal;
 using FlowX.RabbitMq.Statics;
+using FlowX.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -59,7 +60,6 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
             var ch = cons.Channel;
             var body = ea.Body.ToArray();
             var props = ea.BasicProperties;
-            var replyProps = new BasicProperties { CorrelationId = props.CorrelationId };
 
             var requestType = RequestAssemblyCached.Value.GetOrAdd(props.Type, static type => Type.GetType(type)!);
             var responseType = requestMapResponseTypes[requestType];
@@ -72,24 +72,52 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
                 var headers = props.Headers?
                     .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
                 headerInjector.Headers = headers;
-                var response = await mediator.Send(message, ea.CancellationToken);
-                var result = ResultWrapped.NewResultWrapper(responseType, response, null);
-                var responseAsString = JsonSerializer.Serialize(result);
-                var responseBytes = Encoding.UTF8.GetBytes(responseAsString);
-                await ch.BasicPublishAsync(exchange: string.Empty, routingKey: props.ReplyTo!,
-                    mandatory: true, basicProperties: replyProps, body: responseBytes,
-                    cancellationToken: ea.CancellationToken);
+
+                var replyProps = new BasicProperties { CorrelationId = props.CorrelationId };
+                if (responseType == typeof(void))
+                {
+                    await mediator.Send((IRequest)message, ea.CancellationToken);
+                    var successResult = Result.Success();
+                    var responseAsString = JsonSerializer.Serialize(successResult);
+                    var responseBytes = Encoding.UTF8.GetBytes(responseAsString);
+                    await ch.BasicPublishAsync(exchange: string.Empty, routingKey: props.ReplyTo!,
+                        mandatory: true, basicProperties: replyProps, body: responseBytes,
+                        cancellationToken: ea.CancellationToken);
+                }
+                else
+                {
+                    var response = await mediator.Send(message, ea.CancellationToken);
+                    var result = ResultWrapped.NewResultWrapper(responseType, response, null);
+                    var responseAsString = JsonSerializer.Serialize(result);
+                    var responseBytes = Encoding.UTF8.GetBytes(responseAsString);
+                    await ch.BasicPublishAsync(exchange: string.Empty, routingKey: props.ReplyTo!,
+                        mandatory: true, basicProperties: replyProps, body: responseBytes,
+                        cancellationToken: ea.CancellationToken);
+                }
             }
             catch (Exception e)
             {
                 var logger = serviceProvider.GetService<ILogger<RabbitMqServer>>();
                 logger.LogError("Error while responding <{@Attribute}> with message : {@Error}", props.Type, e);
-                var result = ResultWrapped.NewResultWrapper(responseType, null, e);
-                var responseAsString = JsonSerializer.Serialize(result);
-                var responseBytes = Encoding.UTF8.GetBytes(responseAsString);
-                await ch.BasicPublishAsync(exchange: string.Empty, routingKey: props.ReplyTo!,
-                    mandatory: true, basicProperties: replyProps, body: responseBytes,
-                    cancellationToken: ea.CancellationToken);
+                var replyProps = new BasicProperties { CorrelationId = props.CorrelationId };
+                if (responseType == typeof(void))
+                {
+                    var faultResult = Result.Failed(e);
+                    var responseAsString = JsonSerializer.Serialize(faultResult);
+                    var responseBytes = Encoding.UTF8.GetBytes(responseAsString);
+                    await ch.BasicPublishAsync(exchange: string.Empty, routingKey: props.ReplyTo!,
+                        mandatory: true, basicProperties: replyProps, body: responseBytes,
+                        cancellationToken: ea.CancellationToken);
+                }
+                else
+                {
+                    var result = ResultWrapped.NewResultWrapper(responseType, null, e);
+                    var responseAsString = JsonSerializer.Serialize(result);
+                    var responseBytes = Encoding.UTF8.GetBytes(responseAsString);
+                    await ch.BasicPublishAsync(exchange: string.Empty, routingKey: props.ReplyTo!,
+                        mandatory: true, basicProperties: replyProps, body: responseBytes,
+                        cancellationToken: ea.CancellationToken);
+                }
             }
             finally
             {

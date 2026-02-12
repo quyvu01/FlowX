@@ -87,3 +87,77 @@ internal class AzureServiceBusServer<TRequest, TResult>(
         await new TaskCompletionSource().Task;
     }
 }
+
+internal class AzureServiceBusServer<TRequest>(
+    AzureServiceBusClientWrapper clientWrapper,
+    IServiceProvider serviceProvider)
+    : IAzureServiceBusServer<TRequest> where TRequest : IRequest
+{
+    private readonly ILogger<AzureServiceBusServer<TRequest>> _logger =
+        serviceProvider.GetService<ILogger<AzureServiceBusServer<TRequest>>>();
+
+    public async Task StartAsync()
+    {
+        var requestQueue = typeof(TRequest).GetAzureServiceBusRequestQueue();
+        var options = new ServiceBusSessionProcessorOptions
+        {
+            MaxConcurrentSessions = AzureServiceBusStatic.MaxConcurrentSessions,
+            MaxConcurrentCallsPerSession = 1,
+            AutoCompleteMessages = false
+        };
+        var processor = clientWrapper.ServiceBusClient.CreateSessionProcessor(requestQueue, options);
+
+        processor.ProcessMessageAsync += async args =>
+        {
+            var message = args.Message;
+            using var scope = serviceProvider.CreateScope();
+            var pipeline = scope.ServiceProvider
+                .GetRequiredService<FlowPipelinesImpl<TRequest>>();
+            var messageWrapper = JsonSerializer.Deserialize<MessageWrapper>(message.Body);
+
+            var headers = message.ApplicationProperties?
+                .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
+            var request = JsonSerializer.Deserialize<TRequest>(messageWrapper.MessageJson);
+
+            var requestContext = new FlowContext<TRequest>(request, headers, CancellationToken.None);
+            var sender = clientWrapper.ServiceBusClient.CreateSender(message.ReplyTo);
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken.None);
+            cts.CancelAfter(FlowXStatics.DefaultRequestTimeout);
+
+            try
+            {
+                await pipeline.ExecuteAsync(requestContext);
+                var succeedResult = Result.Success();
+                var responseMessage = new ServiceBusMessage(JsonSerializer.Serialize(succeedResult))
+                {
+                    CorrelationId = message.CorrelationId,
+                    SessionId = message.SessionId
+                };
+
+                await sender.SendMessageAsync(responseMessage, cts.Token);
+            }
+            catch (Exception e)
+            {
+                var faultResult = Result.Failed(e);
+                var responseMessage = new ServiceBusMessage(JsonSerializer.Serialize(faultResult))
+                {
+                    CorrelationId = message.CorrelationId,
+                    SessionId = message.SessionId
+                };
+                await sender.SendMessageAsync(responseMessage, cts.Token);
+            }
+            finally
+            {
+                await args.CompleteMessageAsync(message, cts.Token);
+            }
+        };
+        processor.ProcessErrorAsync += args =>
+        {
+            _logger?.LogError("Error while process request: {@Error}", args.Exception.Message);
+            return Task.CompletedTask;
+        };
+        await processor.StartProcessingAsync();
+        await new TaskCompletionSource().Task;
+    }
+}

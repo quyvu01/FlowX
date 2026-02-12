@@ -8,3 +8,4 @@ public interface INatsServer
 }
 
 public interface INatsServer<TRequest, TResult> : INatsServer where TRequest : IRequest<TResult>;
+public interface INatsServer<TRequest> : INatsServer where TRequest : IRequest;

@@ -24,3 +24,19 @@ internal sealed class NatsClient<TRequest, TResult>(NatsClientWrapper client)
         return reply.Data!.IsSuccess ? reply.Data.Data : throw reply.Data!.Fault.ToException();
     }
 }
+
+internal sealed class NatsClient<TRequest>(NatsClientWrapper client)
+    : INatsClient<TRequest> where TRequest : IRequest
+{
+    public async Task RequestAsync(IRequestContext<TRequest> requestContext)
+    {
+        var natsHeaders = new NatsHeaders();
+        requestContext.Headers?.ForEach(h => natsHeaders.Add(h.Key, h.Value));
+        var messageWrapped = new MessageWrapper
+            { MessageJson = JsonSerializer.Serialize(requestContext.Request) };
+        var reply = await client.NatsClient
+            .RequestAsync<MessageWrapper, Result>(typeof(TRequest).GetNatsSubject(),
+                messageWrapped, natsHeaders, cancellationToken: requestContext.CancellationToken);
+        if (!reply.Data!.IsSuccess) throw reply.Data!.Fault.ToException();
+    }
+}

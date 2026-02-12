@@ -43,7 +43,10 @@ public static class EfExtensions
         serviceCollection.AddScoped<IUnitOfWork, EfUnitOfWork>();
         serviceCollection.AddScoped(typeof(EfRepository<>));
         flowXRegisterWrapped.FlowXRegister
-            .AddPipelines(c => c.OfType(typeof(UnitOfWorkStatePipeline<,>)));
+            .AddPipelines(c => c
+                .OfType(typeof(UnitOfWorkStatePipeline<,>))
+                .OfType(typeof(UnitOfWorkStatePipeline<>))
+            );
         return flowXRegisterWrapped;
     }
 

@@ -15,7 +15,7 @@ public sealed class FlowXMediatorTests
     public void IMediator_Should_Define_Send_Methods()
     {
         var methods = typeof(IMediator).GetMethods().Where(m => m.Name == "Send").ToList();
-        Assert.Equal(2, methods.Count);
+        Assert.Equal(3, methods.Count);
     }
 
     [Fact]

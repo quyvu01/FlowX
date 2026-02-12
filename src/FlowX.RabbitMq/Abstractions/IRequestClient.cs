@@ -6,4 +6,7 @@ public interface IRequestClient
 {
     Task<TResult> RequestAsync<TRequest, TResult>(IRequestContext<TRequest> requestContext)
         where TRequest : IRequest<TResult>;
+
+    Task SendAsync<TRequest>(IRequestContext<TRequest> requestContext)
+        where TRequest : IRequest;
 }

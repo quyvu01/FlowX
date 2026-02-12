@@ -26,9 +26,13 @@ public static class NatsExtensions
         flowXRegister.ServiceCollection.AddScoped<ITransportService, NatsTransportService>();
 
         flowXRegister.ServiceCollection.AddSingleton(typeof(INatsServer<,>), typeof(NatsServer<,>));
+        flowXRegister.ServiceCollection.AddSingleton(typeof(INatsServer<>), typeof(NatsServer<>));
         flowXRegister.ServiceCollection.AddHostedService<NatsServerWorker>();
     }
 
-    private static void ClientsRegister(IServiceCollection serviceCollection) =>
+    private static void ClientsRegister(IServiceCollection serviceCollection)
+    {
         serviceCollection.AddScoped(typeof(INatsClient<,>), typeof(NatsClient<,>));
+        serviceCollection.AddScoped(typeof(INatsClient<>), typeof(NatsClient<>));
+    }
 }

@@ -11,8 +11,8 @@ public sealed class UserController(IMediator sender) : ControllerBase
     public async Task<IActionResult> CreateUser([FromBody] CreateUserCommand command,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(command, cancellationToken);
-        return Ok(result);
+        await sender.Send(command, cancellationToken);
+        return Ok();
     }
 
     [HttpGet]

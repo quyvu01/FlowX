@@ -90,4 +90,37 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
         var resultWrapped = JsonSerializer.Deserialize<Result<TResult>>(Encoding.UTF8.GetString(result.Body.ToArray()));
         return resultWrapped.IsSuccess ? resultWrapped.Data : throw resultWrapped.Fault.ToException();
     }
+
+    public async Task SendAsync<TRequest>(IRequestContext<TRequest> requestContext)
+        where TRequest : IRequest
+    {
+        if (_channel is null) throw new InvalidOperationException();
+        var exchangeName = typeof(TRequest).GetExchangeName();
+        var cancellationToken = requestContext.CancellationToken;
+        var correlationId = Guid.NewGuid().ToString();
+        var props = new BasicProperties
+        {
+            CorrelationId = correlationId,
+            ReplyTo = _replyQueueName,
+            Type = typeof(TRequest).GetAssemblyName()
+        };
+        props.Headers ??= new Dictionary<string, object>();
+        requestContext.Headers?.ForEach(h => props.Headers.Add(h.Key, h.Value));
+
+        var tcs = new TaskCompletionSource<BasicDeliverEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _eventArgsMapper.TryAdd(correlationId, tcs);
+        var messageSerialize = JsonSerializer.Serialize(requestContext.Request);
+        var messageBytes = Encoding.UTF8.GetBytes(messageSerialize);
+        await _channel.BasicPublishAsync(exchangeName, routingKey: RoutingKey,
+            mandatory: true, basicProperties: props, body: messageBytes, cancellationToken: cancellationToken);
+
+        await using var ctr = cancellationToken.Register(() =>
+        {
+            _eventArgsMapper.TryRemove(correlationId, out _);
+            tcs.SetCanceled(cancellationToken);
+        });
+        var result = await tcs.Task;
+        var resultWrapped = JsonSerializer.Deserialize<Result>(Encoding.UTF8.GetString(result.Body.ToArray()));
+        if (!resultWrapped.IsSuccess) throw resultWrapped.Fault.ToException();
+    }
 }

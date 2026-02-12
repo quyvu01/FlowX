@@ -23,21 +23,36 @@ public static class FlowXExtensions
         var newFlowXRegister = new FlowXRegister(serviceCollection);
         options.Invoke(newFlowXRegister);
         serviceCollection.AddTransient(typeof(FlowPipelinesImpl<,>));
+        serviceCollection.AddTransient(typeof(FlowPipelinesImpl<>));
         serviceCollection.AddTransient<IMediator, MediatorSender>();
+
         ConnectImplementationsToTypesClosing(typeof(IRequestHandler<,>), serviceCollection,
             [FlowXStatics.HandlersFromNamespaceContaining], false, CancellationToken.None);
+
+        ConnectImplementationsToTypesClosing(typeof(IRequestHandler<>), serviceCollection,
+            [FlowXStatics.HandlersFromNamespaceContaining], false, CancellationToken.None);
+
         serviceCollection
             .ForEach(c =>
             {
                 if (!c.ServiceType.IsGenericType) return;
                 var genericTypeDefinition = c.ServiceType.GetGenericTypeDefinition();
-                if (genericTypeDefinition != typeof(IRequestHandler<,>)) return;
-                var args = c.ServiceType.GetGenericArguments();
-                FlowXCached.InternalRequestMapResponse.Value.TryAdd(args.First(), args.Last());
+                if (genericTypeDefinition == typeof(IRequestHandler<,>))
+                {
+                    var args = c.ServiceType.GetGenericArguments();
+                    FlowXCached.InternalRequestMapResponse.Value.TryAdd(args.First(), args.Last());
+                }
+                else if (genericTypeDefinition == typeof(IRequestHandler<>))
+                {
+                    var args = c.ServiceType.GetGenericArguments();
+                    FlowXCached.InternalRequestMapResponse.Value.TryAdd(args.First(), typeof(void));
+                }
             });
         serviceCollection.AddTransient(typeof(IRequestHandler<,>), typeof(DefaultRequestHandler<,>));
+        serviceCollection.AddTransient(typeof(IRequestHandler<>), typeof(DefaultRequestHandler<>));
         newFlowXRegister.AddPipelines(c => c
             .OfType(typeof(TransportPipeline<,>))
+            .OfType(typeof(TransportPipeline<>))
             .OfType(typeof(PagedPipeline<,>))
         );
         return new FlowXRegisterWrapped(newFlowXRegister);

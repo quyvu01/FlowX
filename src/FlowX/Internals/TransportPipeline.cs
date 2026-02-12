@@ -25,3 +25,28 @@ internal sealed class TransportPipeline<TRequest, TResult>(IServiceProvider serv
         return await transportService.TransportDataAsync<TRequest, TResult>(requestXContext);
     }
 }
+
+internal sealed class TransportPipeline<TRequest>(IServiceProvider serviceProvider)
+    : IPipelineBehavior<TRequest> where TRequest : IRequest
+{
+    public async Task HandleAsync(IRequestContext<TRequest> requestXContext, Func<Task> next)
+    {
+        var isRequestRegisteredInApp = FlowXCached.RequestMapResponse
+            .TryGetValue(typeof(TRequest), out _);
+        if (isRequestRegisteredInApp)
+        {
+            await next.Invoke();
+            return;
+        }
+
+        // Check if transport is supported or not!
+        var transportService = serviceProvider.GetService<ITransportService>();
+        if (transportService is null)
+        {
+            await next.Invoke();
+            return;
+        }
+
+        await transportService.TransportDataAsync(requestXContext);
+    }
+}

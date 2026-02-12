@@ -7,6 +7,7 @@ namespace FlowX.ApplicationModels;
 public sealed class FlowPipeline(IServiceCollection serviceCollection)
 {
     private static readonly Type InterfaceReceivedPipeline = typeof(IPipelineBehavior<,>);
+    private static readonly Type InterfaceReceivedVoidPipeline = typeof(IPipelineBehavior<>);
 
     public FlowPipeline OfType<TReceivedPipeline>(ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
     {
@@ -18,7 +19,9 @@ public sealed class FlowPipeline(IServiceCollection serviceCollection)
     public FlowPipeline OfType(Type pipelineType, ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)
     {
         var signatureInterfaceTypes = pipelineType.GetInterfaces()
-            .Where(a => a.IsGenericType && a.GetGenericTypeDefinition() == InterfaceReceivedPipeline)
+            .Where(a => a.IsGenericType &&
+                        (a.GetGenericTypeDefinition() == InterfaceReceivedPipeline ||
+                         a.GetGenericTypeDefinition() == InterfaceReceivedVoidPipeline))
             .ToList();
         if (signatureInterfaceTypes is not { Count: > 0 })
             throw new FlowXExceptions.PipelineIsNotPipelineBehavior(pipelineType);
@@ -26,7 +29,16 @@ public sealed class FlowPipeline(IServiceCollection serviceCollection)
         {
             if (pipelineType.ContainsGenericParameters)
             {
-                serviceCollection.Add(new ServiceDescriptor(InterfaceReceivedPipeline, pipelineType, serviceLifetime));
+                var hasResultPipeline = pipelineType.GetInterfaces()
+                    .Any(a => a.IsGenericType && a.GetGenericTypeDefinition() == InterfaceReceivedPipeline);
+                var hasVoidPipeline = pipelineType.GetInterfaces()
+                    .Any(a => a.IsGenericType && a.GetGenericTypeDefinition() == InterfaceReceivedVoidPipeline);
+                if (hasResultPipeline)
+                    serviceCollection.Add(new ServiceDescriptor(InterfaceReceivedPipeline, pipelineType,
+                        serviceLifetime));
+                if (hasVoidPipeline)
+                    serviceCollection.Add(new ServiceDescriptor(InterfaceReceivedVoidPipeline, pipelineType,
+                        serviceLifetime));
                 return this;
             }
         }

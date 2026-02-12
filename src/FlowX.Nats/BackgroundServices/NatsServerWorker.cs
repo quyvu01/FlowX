@@ -20,8 +20,10 @@ internal sealed class NatsServerWorker(IServiceProvider serviceProvider) : Backg
                 var tasks = requestMapResponseTypes.Select(async requestMapResponseType =>
                 {
                     var (requestType, responseType) = requestMapResponseType;
-                    var service = serviceProvider.GetRequiredService(typeof(INatsServer<,>)
-                        .MakeGenericType(requestType, responseType));
+                    var serviceType = responseType == typeof(void)
+                        ? typeof(INatsServer<>).MakeGenericType(requestType)
+                        : typeof(INatsServer<,>).MakeGenericType(requestType, responseType);
+                    var service = serviceProvider.GetRequiredService(serviceType);
                     if (service is not INatsServer natsServerRpc) return;
                     await natsServerRpc.SubscribeAsync();
                 });

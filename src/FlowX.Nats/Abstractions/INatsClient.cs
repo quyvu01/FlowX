@@ -6,3 +6,8 @@ internal interface INatsClient<in TRequest, TResult> where TRequest : IRequest<T
 {
     Task<TResult> RequestAsync(IRequestContext<TRequest> requestContext);
 }
+
+internal interface INatsClient<in TRequest> where TRequest : IRequest
+{
+    Task RequestAsync(IRequestContext<TRequest> requestContext);
+}

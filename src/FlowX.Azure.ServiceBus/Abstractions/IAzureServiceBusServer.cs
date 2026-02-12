@@ -9,3 +9,6 @@ internal interface IAzureServiceBusServer
 
 internal interface IAzureServiceBusServer<TRequest, TResult> : IAzureServiceBusServer
     where TRequest : IRequest<TResult>;
+
+internal interface IAzureServiceBusServer<TRequest> : IAzureServiceBusServer
+    where TRequest : IRequest;

@@ -9,7 +9,14 @@ public sealed class AzureServiceBusTransportService(IServiceProvider serviceProv
     public Task<TResult> TransportDataAsync<TRequest, TResult>(IRequestContext<TRequest> requestContext)
         where TRequest : IRequest<TResult>
     {
-        var natsRequester = serviceProvider.GetService<IAzureServiceBusClient<TRequest, TResult>>();
-        return natsRequester.RequestAsync(requestContext);
+        var client = serviceProvider.GetService<IAzureServiceBusClient<TRequest, TResult>>();
+        return client.RequestAsync(requestContext);
+    }
+
+    public async Task TransportDataAsync<TRequest>(IRequestContext<TRequest> requestContext)
+        where TRequest : IRequest
+    {
+        var client = serviceProvider.GetService<IAzureServiceBusClient<TRequest>>();
+        await client.RequestAsync(requestContext);
     }
 }

@@ -28,8 +28,12 @@ public static class AzureServiceBusExtensions
         flowXRegister.ServiceCollection.AddScoped<ITransportService, AzureServiceBusTransportService>();
         flowXRegister.ServiceCollection.AddSingleton(typeof(IAzureServiceBusServer<,>),
             typeof(AzureServiceBusServer<,>));
+        flowXRegister.ServiceCollection.AddSingleton(typeof(IAzureServiceBusServer<>),
+            typeof(AzureServiceBusServer<>));
         flowXRegister.ServiceCollection.AddHostedService<AzureServiceBusServerWorker>();
         flowXRegister.ServiceCollection.AddSingleton(typeof(IAzureServiceBusClient<,>),
             typeof(AzureServiceBusClient<,>));
+        flowXRegister.ServiceCollection.AddSingleton(typeof(IAzureServiceBusClient<>),
+            typeof(AzureServiceBusClient<>));
     }
 }

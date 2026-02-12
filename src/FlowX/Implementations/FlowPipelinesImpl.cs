@@ -11,3 +11,13 @@ public class FlowPipelinesImpl<TRequest, TResult>(
         behaviors.Reverse().Aggregate(() => handler.HandleAsync(requestContext),
             (acc, pipeline) => () => pipeline.HandleAsync(requestContext, acc)).Invoke();
 }
+
+public class FlowPipelinesImpl<TRequest>(
+    IEnumerable<IPipelineBehavior<TRequest>> behaviors,
+    IRequestHandler<TRequest> handler)
+    where TRequest : IRequest
+{
+    public Task ExecuteAsync(IRequestContext<TRequest> requestContext) =>
+        behaviors.Reverse().Aggregate(() => handler.HandleAsync(requestContext),
+            (acc, pipeline) => () => pipeline.HandleAsync(requestContext, acc)).Invoke();
+}
