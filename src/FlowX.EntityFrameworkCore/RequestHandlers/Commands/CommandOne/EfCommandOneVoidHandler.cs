@@ -22,6 +22,7 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
         var repository = unitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildCommand(new CommandOneVoidFlow<TModel>(), requestContext);
         var commandType = buildResult.CommandTypeOne;
+        TModel item;
         switch (commandType)
         {
             case CommandTypeOne.Create:
@@ -32,7 +33,14 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
                     conditionResult.ThrowIfError();
                 }
 
+                if (buildResult.CreateModifyFunc is { } createModifyFunc)
+                    await createModifyFunc.Invoke(itemCreating);
+
+                if (buildResult.BeforeExecutionFunc is { } beforeCreateFunc)
+                    await beforeCreateFunc.Invoke(itemCreating);
+
                 await repository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
+                item = itemCreating;
                 break;
             case CommandTypeOne.Update:
                 var itemUpdating = await repository
@@ -47,6 +55,11 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
                 }
 
                 await buildResult.UpdateOneFunc.Invoke(itemUpdating);
+
+                if (buildResult.BeforeExecutionFunc is { } beforeUpdateFunc)
+                    await beforeUpdateFunc.Invoke(itemUpdating);
+
+                item = itemUpdating;
                 break;
             case CommandTypeOne.Remove:
                 var itemRemoving = await repository.GetFirstByConditionAsync(buildResult.CommandFilter,
@@ -58,7 +71,11 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
                     conditionResult.ThrowIfError();
                 }
 
+                if (buildResult.BeforeExecutionFunc is { } beforeRemoveFunc)
+                    await beforeRemoveFunc.Invoke(itemRemoving);
+
                 await repository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
+                item = itemRemoving;
                 break;
             case CommandTypeOne.Unknown:
             default:
@@ -66,6 +83,10 @@ public abstract class EfCommandOneVoidHandler<TModel, TCommand>
         }
 
         await unitOfWork.SaveChangesAsync(requestContext.CancellationToken);
+
+        if (buildResult.AfterExecutionFunc is { } afterFunc)
+            await afterFunc.Invoke(item);
+
         return None.Value;
     }
 }

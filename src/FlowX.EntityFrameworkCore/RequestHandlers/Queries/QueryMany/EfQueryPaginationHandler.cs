@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
@@ -21,6 +21,11 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>
         var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
         var repository = unitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
+
+        if (buildResult.BeforeExecutionFunc is { } beforeFunc)
+            await beforeFunc.Invoke();
+
+        PaginationResponse<TResponse> result;
         switch (buildResult.QuerySpecialActionType)
         {
             case QuerySpecialActionType.ToModel:
@@ -38,7 +43,8 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>
                     .ToListAsync(requestContext.CancellationToken);
                 var toModelTotalRecord = await toModelFinalQueryable.LongCountAsync(requestContext.CancellationToken);
                 var itemsResponses = toModelResponse.Select(a => buildResult.MapFunc.Invoke(a)).ToList();
-                return new PaginationResponse<TResponse>(itemsResponses, toModelTotalRecord);
+                result = new PaginationResponse<TResponse>(itemsResponses, toModelTotalRecord);
+                break;
             }
             case QuerySpecialActionType.ToTarget:
                 var srcQueryable = repository
@@ -54,10 +60,16 @@ public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>
                     .Limit(requestContext.Request.Take())
                     .ToListAsync(requestContext.CancellationToken);
                 var totalRecord = await finalQueryable.LongCountAsync(requestContext.CancellationToken);
-                return new PaginationResponse<TResponse>(response, totalRecord);
+                result = new PaginationResponse<TResponse>(response, totalRecord);
+                break;
             case QuerySpecialActionType.UnKnown:
             default:
                 throw new UnreachableException("Query special type could not be unknown!");
         }
+
+        if (buildResult.AfterExecutionFunc is { } afterFunc)
+            await afterFunc.Invoke();
+
+        return result;
     }
 }

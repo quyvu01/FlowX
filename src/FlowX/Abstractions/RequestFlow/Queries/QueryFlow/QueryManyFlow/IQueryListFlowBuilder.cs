@@ -10,4 +10,6 @@ public interface IQueryListFlowBuilder<TModel, out TResponse> where TModel : cla
     Func<IQueryable<TModel>, IQueryable<TResponse>> SpecialActionToResponse { get; }
     Func<TModel, TResponse> MapFunc { get; }
     ExpressionOrder<TModel> ExpressionOrder { get; }
+    Func<Task> BeforeExecutionFunc { get; }
+    Func<Task> AfterExecutionFunc { get; }
 }

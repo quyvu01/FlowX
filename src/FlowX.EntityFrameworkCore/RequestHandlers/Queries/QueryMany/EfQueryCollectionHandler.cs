@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
@@ -21,6 +21,11 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>
         var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
         var repository = unitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
+
+        if (buildResult.BeforeExecutionFunc is { } beforeFunc)
+            await beforeFunc.Invoke();
+
+        CollectionResponse<TResponse> result;
         switch (buildResult.QuerySpecialActionType)
         {
             case QuerySpecialActionType.ToModel:
@@ -34,7 +39,8 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>
                             .OrderDynamicOrDefault(null, buildResult.ExpressionOrder.ExpressionDetails);
                     }, requestContext.CancellationToken);
                 var itemsResponse = items.Select(a => buildResult.MapFunc.Invoke(a)).ToList();
-                return new CollectionResponse<TResponse>(itemsResponse);
+                result = new CollectionResponse<TResponse>(itemsResponse);
+                break;
             }
             case QuerySpecialActionType.ToTarget:
                 var srcQueryable = repository
@@ -44,10 +50,16 @@ public abstract class EfQueryCollectionHandler<TModel, TQuery, TResponse>
                     .OrderDynamicOrDefault(null, buildResult.ExpressionOrder.ExpressionDetails);
                 var response = await buildResult.SpecialActionToResponse.Invoke(queryable)
                     .ToListAsync(requestContext.CancellationToken);
-                return new CollectionResponse<TResponse>(response);
+                result = new CollectionResponse<TResponse>(response);
+                break;
             case QuerySpecialActionType.UnKnown:
             default:
                 throw new UnreachableException("Query special type could not be unknown!");
         }
+
+        if (buildResult.AfterExecutionFunc is { } afterFunc)
+            await afterFunc.Invoke();
+
+        return result;
     }
 }

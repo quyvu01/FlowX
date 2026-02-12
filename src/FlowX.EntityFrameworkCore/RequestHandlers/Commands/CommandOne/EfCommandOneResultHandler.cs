@@ -32,6 +32,12 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>
                     conditionResult.ThrowIfError();
                 }
 
+                if (buildResult.CreateModifyFunc is { } createModifyFunc)
+                    await createModifyFunc.Invoke(itemCreating);
+
+                if (buildResult.BeforeExecutionFunc is { } beforeCreateFunc)
+                    await beforeCreateFunc.Invoke(itemCreating);
+
                 await repository.CreateOneAsync(itemCreating, token: requestContext.CancellationToken);
                 item = itemCreating;
                 break;
@@ -46,6 +52,10 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>
                 }
 
                 await buildResult.UpdateOneFunc.Invoke(itemUpdating);
+
+                if (buildResult.BeforeExecutionFunc is { } beforeUpdateFunc)
+                    await beforeUpdateFunc.Invoke(itemUpdating);
+
                 item = itemUpdating;
                 break;
             case CommandTypeOne.Remove:
@@ -57,6 +67,9 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>
                     conditionResult.ThrowIfError();
                 }
 
+                if (buildResult.BeforeExecutionFunc is { } beforeRemoveFunc)
+                    await beforeRemoveFunc.Invoke(itemRemoving);
+
                 await repository.RemoveOneAsync(itemRemoving, requestContext.CancellationToken);
                 item = itemRemoving;
                 break;
@@ -66,6 +79,10 @@ public abstract class EfCommandOneResultHandler<TModel, TCommand, TResult>
         }
 
         await unitOfWork.SaveChangesAsync(requestContext.CancellationToken);
+
+        if (buildResult.AfterExecutionFunc is { } afterFunc)
+            await afterFunc.Invoke(item);
+
         var result = buildResult.ResultFunc.Invoke(item);
         return result;
     }

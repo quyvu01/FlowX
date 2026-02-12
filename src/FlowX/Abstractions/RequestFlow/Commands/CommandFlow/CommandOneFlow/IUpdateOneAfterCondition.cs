@@ -3,7 +3,8 @@ using FlowX.Structs;
 
 namespace FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandOneFlow;
 
-public interface IUpdateOneConditionResult<TModel, TResult> where TModel : class
+public interface IUpdateOneAfterConditionResult<TModel, TResult> : IUpdateOneModifyResult<TModel, TResult>
+    where TModel : class
 {
     IUpdateOneAfterConditionResult<TModel, TResult> WithCondition(
         Func<TModel, OneOf<None, Error>> condition);
@@ -12,7 +13,8 @@ public interface IUpdateOneConditionResult<TModel, TResult> where TModel : class
         Func<TModel, Task<OneOf<None, Error>>> conditionAsync);
 }
 
-public interface IUpdateOneConditionVoid<TModel> where TModel : class
+public interface IUpdateOneAfterConditionVoid<TModel> : IUpdateOneModifyVoid<TModel>
+    where TModel : class
 {
     IUpdateOneAfterConditionVoid<TModel> WithCondition(
         Func<TModel, OneOf<None, Error>> condition);

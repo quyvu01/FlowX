@@ -15,5 +15,5 @@ public sealed class CreateUserHandler : EfCommandOneVoidHandler<User, CreateUser
         => fromFlow
             .CreateOne(new User { Id = Guid.NewGuid(), Name = commandContext.Request.Name })
             .WithCondition(_ => None.Value)
-            .WithErrorIfSaveChange(new Error { Code = "SomeError", Messages = ["Create user failed!"] });
+            .WithErrorIfSaveChange(new Error { Code = "SomeError", Messages = ["Create user failed!"] }) ;
 }

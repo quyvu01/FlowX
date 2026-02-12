@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
@@ -22,6 +22,11 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>
         var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
         var repository = unitOfWork.RepositoryOf<TModel>();
         var buildResult = BuildQueryFlow(new QueryOneFlow<TModel, TResponse>(), requestContext);
+
+        if (buildResult.BeforeExecutionFunc is { } beforeFunc)
+            await beforeFunc.Invoke();
+
+        TResponse result;
         switch (buildResult.QuerySpecialActionType)
         {
             case QuerySpecialActionType.UnKnown:
@@ -31,7 +36,8 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>
                 var item = await repository.GetFirstByConditionAsync(buildResult.Filter,
                     db => buildResult.SpecialAction?
                         .Invoke(db.AsNoTracking()) ?? db.AsNoTracking(), requestContext.CancellationToken);
-                return item is null ? throw buildResult.Error : buildResult.MapFunc.Invoke(item);
+                result = item is null ? throw buildResult.Error : buildResult.MapFunc.Invoke(item);
+                break;
             }
             case QuerySpecialActionType.ToTarget:
             default:
@@ -40,8 +46,14 @@ public abstract class EfQueryOneHandler<TModel, TQuery, TResponse>
                     .AsNoTracking();
                 var item = await buildResult.SpecialActionToResponse.Invoke(collection)
                     .FirstOrDefaultAsync(requestContext.CancellationToken);
-                return item ?? throw buildResult.Error;
+                result = item ?? throw buildResult.Error;
+                break;
             }
         }
+
+        if (buildResult.AfterExecutionFunc is { } afterFunc)
+            await afterFunc.Invoke(result);
+
+        return result;
     }
 }

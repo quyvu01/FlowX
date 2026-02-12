@@ -7,13 +7,16 @@ namespace FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandOneFlow;
 public class CommandOneResultFlow<TModel, TResult> :
     IStartOneCommandResult<TModel, TResult>,
     ICreateOneConditionResult<TModel, TResult>,
+    ICreateOneAfterConditionResult<TModel, TResult>,
     IUpdateOneSpecialActionResult<TModel, TResult>,
     IRemoveOneSpecialActionResult<TModel, TResult>,
     IUpdateOneConditionResult<TModel, TResult>,
+    IUpdateOneAfterConditionResult<TModel, TResult>,
     IRemoveOneConditionResult<TModel, TResult>,
     IUpdateOneModifyResult<TModel, TResult>,
     ICommandOneErrorDetailResult<TModel, TResult>,
     ISaveChangesOneErrorDetailResult<TModel, TResult>,
+    IAfterSaveChangeResult<TModel, TResult>,
     ISaveChangesOneSucceed<TModel, TResult>,
     ICommandOneFlowBuilderResult<TModel, TResult>
     where TModel : class
@@ -24,15 +27,22 @@ public class CommandOneResultFlow<TModel, TResult> :
     public Expression<Func<TModel, bool>> CommandFilter { get; private set; }
     public Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; private set; }
     public Func<TModel, Task> UpdateOneFunc { get; private set; }
+    public Func<TModel, Task> CreateModifyFunc { get; private set; }
+    public Func<TModel, Task> BeforeExecutionFunc { get; private set; }
+    public Func<TModel, Task> AfterExecutionFunc { get; private set; }
     public Error NullError { get; private set; }
     public Error SaveChangesError { get; private set; }
     public Func<TModel, TResult> ResultFunc { get; private set; }
+
+    // === ISaveChangesOneSucceed ===
 
     public ICommandOneFlowBuilderResult<TModel, TResult> WithResultIfSucceed(Func<TModel, TResult> resultFunc)
     {
         ResultFunc = resultFunc;
         return this;
     }
+
+    // === IStartOneCommandResult ===
 
     public ICreateOneConditionResult<TModel, TResult> CreateOne(Func<Task<TModel>> modelFunc)
     {
@@ -69,6 +79,8 @@ public class CommandOneResultFlow<TModel, TResult> :
         return this;
     }
 
+    // === SpecialAction ===
+
     IUpdateOneConditionResult<TModel, TResult> IUpdateOneSpecialActionResult<TModel, TResult>.WithSpecialAction(
         Func<IQueryable<TModel>, IQueryable<TModel>> specialAction)
     {
@@ -82,6 +94,8 @@ public class CommandOneResultFlow<TModel, TResult> :
         CommandSpecialAction = specialAction;
         return this;
     }
+
+    // === WithModify (public - satisfies IUpdateOneModifyResult, inherited by IUpdateOneAfterConditionResult) ===
 
     public ICommandOneErrorDetailResult<TModel, TResult> WithModify(Func<TModel, Task> updateFuncAsync)
     {
@@ -99,24 +113,149 @@ public class CommandOneResultFlow<TModel, TResult> :
         return this;
     }
 
+    // === WithErrorIfNull ===
+
     public ISaveChangesOneErrorDetailResult<TModel, TResult> WithErrorIfNull(Error error)
     {
         NullError = error;
         return this;
     }
 
-    public ISaveChangesOneSucceed<TModel, TResult> WithErrorIfSaveChange(Error error)
+    // === ISaveChangesOneErrorDetailResult ===
+
+    IAfterSaveChangeResult<TModel, TResult> ISaveChangesOneErrorDetailResult<TModel, TResult>.WithErrorIfSaveChange(
+        Error error)
     {
         SaveChangesError = error;
         return this;
     }
 
-    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ISaveChangesOneErrorDetailResult<TModel, TResult>
+        .WithBeforeExecution(Action<TModel> action)
+    {
+        BeforeExecutionFunc = model =>
+        {
+            action.Invoke(model);
+            return Task.CompletedTask;
+        };
+        return this;
+    }
+
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ISaveChangesOneErrorDetailResult<TModel, TResult>
+        .WithBeforeExecution(Func<TModel, Task> actionAsync)
+    {
+        BeforeExecutionFunc = actionAsync;
+        return this;
+    }
+
+    // === IAfterSaveChangeResult ===
+
+    ISaveChangesOneSucceed<TModel, TResult> IAfterSaveChangeResult<TModel, TResult>.WithAfterExecution(
+        Action<TModel> action)
+    {
+        AfterExecutionFunc = model =>
+        {
+            action.Invoke(model);
+            return Task.CompletedTask;
+        };
+        return this;
+    }
+
+    ISaveChangesOneSucceed<TModel, TResult> IAfterSaveChangeResult<TModel, TResult>.WithAfterExecution(
+        Func<TModel, Task> actionAsync)
+    {
+        AfterExecutionFunc = actionAsync;
+        return this;
+    }
+
+    // === ICreateOneConditionResult.WithCondition (first condition for Create) ===
+
+    ICreateOneAfterConditionResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
         Func<TModel, OneOf<None, Error>> condition)
     {
         ConditionAsync = model => Task.FromResult(condition(model));
         return this;
     }
+
+    ICreateOneAfterConditionResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
+    {
+        ConditionAsync = conditionAsync;
+        return this;
+    }
+
+    // === ICreateOneAfterConditionResult (chain conditions, modify, hooks for Create) ===
+
+    ICreateOneAfterConditionResult<TModel, TResult> ICreateOneAfterConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, OneOf<None, Error>> condition)
+    {
+        var prev = ConditionAsync;
+        ConditionAsync = async model =>
+        {
+            var result = await prev(model);
+            if (result.IsT1) return result;
+            return condition(model);
+        };
+        return this;
+    }
+
+    ICreateOneAfterConditionResult<TModel, TResult> ICreateOneAfterConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
+    {
+        var prev = ConditionAsync;
+        ConditionAsync = async model =>
+        {
+            var result = await prev(model);
+            if (result.IsT1) return result;
+            return await conditionAsync(model);
+        };
+        return this;
+    }
+
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneAfterConditionResult<TModel, TResult>.WithModify(
+        Action<TModel> modifyAction)
+    {
+        CreateModifyFunc = model =>
+        {
+            modifyAction.Invoke(model);
+            return Task.CompletedTask;
+        };
+        return this;
+    }
+
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneAfterConditionResult<TModel, TResult>.WithModify(
+        Func<TModel, Task> modifyActionAsync)
+    {
+        CreateModifyFunc = modifyActionAsync;
+        return this;
+    }
+
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneAfterConditionResult<TModel, TResult>
+        .WithBeforeExecution(Action<TModel> action)
+    {
+        BeforeExecutionFunc = model =>
+        {
+            action.Invoke(model);
+            return Task.CompletedTask;
+        };
+        return this;
+    }
+
+    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneAfterConditionResult<TModel, TResult>
+        .WithBeforeExecution(Func<TModel, Task> actionAsync)
+    {
+        BeforeExecutionFunc = actionAsync;
+        return this;
+    }
+
+    IAfterSaveChangeResult<TModel, TResult> ICreateOneAfterConditionResult<TModel, TResult>.WithErrorIfSaveChange(
+        Error error)
+    {
+        SaveChangesError = error;
+        return this;
+    }
+
+    // === IRemoveOneConditionResult.WithCondition ===
 
     ICommandOneErrorDetailResult<TModel, TResult> IRemoveOneConditionResult<TModel, TResult>.WithCondition(
         Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
@@ -132,24 +271,47 @@ public class CommandOneResultFlow<TModel, TResult> :
         return this;
     }
 
-    IUpdateOneModifyResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
+    // === IUpdateOneConditionResult.WithCondition (first condition for Update) ===
+
+    IUpdateOneAfterConditionResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
         Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
     {
         ConditionAsync = conditionAsync;
         return this;
     }
 
-    IUpdateOneModifyResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
+    IUpdateOneAfterConditionResult<TModel, TResult> IUpdateOneConditionResult<TModel, TResult>.WithCondition(
         Func<TModel, OneOf<None, Error>> condition)
     {
         ConditionAsync = model => Task.FromResult(condition(model));
         return this;
     }
 
-    ISaveChangesOneErrorDetailResult<TModel, TResult> ICreateOneConditionResult<TModel, TResult>.WithCondition(
+    // === IUpdateOneAfterConditionResult (chain conditions for Update) ===
+
+    IUpdateOneAfterConditionResult<TModel, TResult> IUpdateOneAfterConditionResult<TModel, TResult>.WithCondition(
+        Func<TModel, OneOf<None, Error>> condition)
+    {
+        var prev = ConditionAsync;
+        ConditionAsync = async model =>
+        {
+            var result = await prev(model);
+            if (result.IsT1) return result;
+            return condition(model);
+        };
+        return this;
+    }
+
+    IUpdateOneAfterConditionResult<TModel, TResult> IUpdateOneAfterConditionResult<TModel, TResult>.WithCondition(
         Func<TModel, Task<OneOf<None, Error>>> conditionAsync)
     {
-        ConditionAsync = conditionAsync;
+        var prev = ConditionAsync;
+        ConditionAsync = async model =>
+        {
+            var result = await prev(model);
+            if (result.IsT1) return result;
+            return await conditionAsync(model);
+        };
         return this;
     }
 }

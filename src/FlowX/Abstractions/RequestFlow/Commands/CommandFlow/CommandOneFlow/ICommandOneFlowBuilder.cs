@@ -18,6 +18,9 @@ public interface ICommandOneFlowBuilderVoid<TModel> where TModel : class
     Expression<Func<TModel, bool>> CommandFilter { get; }
     Func<IQueryable<TModel>, IQueryable<TModel>> CommandSpecialAction { get; }
     Func<TModel, Task> UpdateOneFunc { get; }
+    Func<TModel, Task> CreateModifyFunc { get; }
+    Func<TModel, Task> BeforeExecutionFunc { get; }
+    Func<TModel, Task> AfterExecutionFunc { get; }
     Error NullError { get; }
     Error SaveChangesError { get; }
 }
