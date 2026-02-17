@@ -26,4 +26,16 @@ public class QueryPipelineFlow : IStartQueryPipeline
         StepEntries.Add(step);
         return new QueryPipelineManyConfigurator<TModel, object>(this, step);
     }
+
+    public IQueryPipelinePaginatedStep<TModel> QueryPaginated<TModel>(
+        Expression<Func<TModel, bool>> filter, int? skip, int? take,
+        string sortedFields = null) where TModel : class
+    {
+        var step = new QueryPaginatedPipelineStep<TModel, object>
+        {
+            Filter = filter, Skip = skip, Take = take, SortedFields = sortedFields
+        };
+        StepEntries.Add(step);
+        return new QueryPipelinePaginatedConfigurator<TModel, object>(this, step);
+    }
 }

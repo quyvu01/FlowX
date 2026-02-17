@@ -19,6 +19,15 @@ public interface IQueryPipelineNextable<TPrev>
     IQueryPipelineManyStep<TNext> ThenQueryManyFromQueryable<TNext>(
         Func<TPrev, IQueryable<TNext>, IQueryable<TNext>> queryableFactory) where TNext : class;
 
+    // Paginated transitions
+    IQueryPipelinePaginatedStep<TNext> ThenQueryPaginated<TNext>(
+        Func<TPrev, Expression<Func<TNext, bool>>> filterFactory,
+        int? skip, int? take, string sortedFields = null) where TNext : class;
+
+    IQueryPipelinePaginatedStep<TNext> ThenQueryPaginatedFromQueryable<TNext>(
+        Func<TPrev, IQueryable<TNext>, IQueryable<TNext>> queryableFactory,
+        int? skip, int? take, string sortedFields = null) where TNext : class;
+
     // Terminal
     IQueryPipelineResultTerminal<TResult> WithResult<TResult>(
         [NotNull] Func<TPrev, TResult> resultFunc);

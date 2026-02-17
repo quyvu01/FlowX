@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryPipelineFlow;
 
@@ -21,6 +22,13 @@ internal sealed class QueryPipelineManyConfigurator<TModel, TPrev> :
         Func<IQueryable<TModel>, IQueryable<TModel>> specialAction)
     {
         _currentStep.SpecialAction = specialAction;
+        return this;
+    }
+
+    IQueryPipelineManyStep<TModel> IQueryPipelineManyStep<TModel>.WithDefaultSortFields(
+        ExpressionOrder<TModel> expressionOrder)
+    {
+        _currentStep.DefaultSort = expressionOrder;
         return this;
     }
 
@@ -64,6 +72,33 @@ internal sealed class QueryPipelineManyConfigurator<TModel, TPrev> :
         };
         _pipeline.StepEntries.Add(step);
         return new QueryPipelineManyConfigurator<TNext, List<TModel>>(_pipeline, step);
+    }
+
+    // ===== IQueryPipelineNextable<List<TModel>> — Paginated =====
+
+    IQueryPipelinePaginatedStep<TNext> IQueryPipelineNextable<List<TModel>>.ThenQueryPaginated<TNext>(
+        Func<List<TModel>, Expression<Func<TNext, bool>>> filterFactory,
+        int? skip, int? take, string sortedFields)
+    {
+        var step = new QueryPaginatedPipelineStep<TNext, List<TModel>>
+        {
+            FilterFactory = filterFactory, Skip = skip, Take = take, SortedFields = sortedFields
+        };
+        _pipeline.StepEntries.Add(step);
+        return new QueryPipelinePaginatedConfigurator<TNext, List<TModel>>(_pipeline, step);
+    }
+
+    IQueryPipelinePaginatedStep<TNext> IQueryPipelineNextable<List<TModel>>.ThenQueryPaginatedFromQueryable<TNext>(
+        Func<List<TModel>, IQueryable<TNext>, IQueryable<TNext>> queryableFactory,
+        int? skip, int? take, string sortedFields)
+    {
+        var step = new QueryPaginatedPipelineStep<TNext, List<TModel>>
+        {
+            SpecialActionFactory = prev => q => queryableFactory(prev, q),
+            Skip = skip, Take = take, SortedFields = sortedFields
+        };
+        _pipeline.StepEntries.Add(step);
+        return new QueryPipelinePaginatedConfigurator<TNext, List<TModel>>(_pipeline, step);
     }
 
     // ===== IQueryPipelineNextable<List<TModel>> — Terminal =====

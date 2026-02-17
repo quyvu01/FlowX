@@ -9,4 +9,8 @@ public interface IStartQueryPipeline
 
     IQueryPipelineManyStep<TModel> QueryMany<TModel>(
         Expression<Func<TModel, bool>> filter) where TModel : class;
+
+    IQueryPipelinePaginatedStep<TModel> QueryPaginated<TModel>(
+        Expression<Func<TModel, bool>> filter,
+        int? skip, int? take, string sortedFields = null) where TModel : class;
 }

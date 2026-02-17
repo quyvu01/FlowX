@@ -1,10 +1,9 @@
 using System.Linq.Expressions;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
-using FlowX.Extensions;
 
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryPipelineFlow;
 
-internal sealed class QueryManyPipelineStep<TModel, TPrev> : IQueryPipelineStepEntry where TModel : class
+internal sealed class QueryPaginatedPipelineStep<TModel, TPrev> : IQueryPipelineStepEntry where TModel : class
 {
     // First step: direct filter. Subsequent: filter from prev
     public Expression<Func<TModel, bool>> Filter { get; set; }
@@ -16,8 +15,11 @@ internal sealed class QueryManyPipelineStep<TModel, TPrev> : IQueryPipelineStepE
     // Dynamic special action from prev (FromQueryable variant)
     public Func<TPrev, Func<IQueryable<TModel>, IQueryable<TModel>>> SpecialActionFactory { get; set; }
 
-    // Default sort fields
+    // Pagination params
     public ExpressionOrder<TModel> DefaultSort { get; set; }
+    public string SortedFields { get; set; }
+    public int? Skip { get; set; }
+    public int? Take { get; set; }
 
     public async Task<object> ExecuteAsync(
         IQueryPipelineServiceProvider provider, object previousResult, CancellationToken ct)
@@ -27,17 +29,8 @@ internal sealed class QueryManyPipelineStep<TModel, TPrev> : IQueryPipelineStepE
             ? SpecialActionFactory((TPrev)previousResult)
             : SpecialAction;
 
-        if (DefaultSort is not null)
-        {
-            var baseAction = specialAction;
-            specialAction = q =>
-            {
-                var result = baseAction is not null ? baseAction(q) : q;
-                return result.OrderDynamicOrDefault(null, DefaultSort.ExpressionDetails);
-            };
-        }
-
-        var result = await provider.GetManyByConditionAsync(filter, specialAction, ct);
+        var result = await provider.GetManyWithPaginationAsync(
+            filter, specialAction, DefaultSort, SortedFields, Skip, Take, ct);
         return result;
     }
 }

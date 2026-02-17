@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryPipelineFlow;
 using FlowX.Errors;
 using Xunit;
@@ -83,6 +84,37 @@ public sealed class QueryPipelineFlowTests
                 queryable = specialAction(queryable);
 
             return Task.FromResult(queryable.ToList());
+        }
+
+        public Task<QueryPipelinePage<TModel>> GetManyWithPaginationAsync<TModel>(
+            Expression<Func<TModel, bool>> filter,
+            Func<IQueryable<TModel>, IQueryable<TModel>> specialAction,
+            ExpressionOrder<TModel> defaultSort,
+            string sortedFields,
+            int? skip, int? take,
+            CancellationToken ct) where TModel : class
+        {
+            Operations.Add($"GetPaginated:{typeof(TModel).Name}");
+            if (!_store.TryGetValue(typeof(TModel), out var list))
+                return Task.FromResult(new QueryPipelinePage<TModel> { Items = [], TotalRecord = 0 });
+
+            var queryable = list.Cast<TModel>().AsQueryable();
+            if (filter is not null)
+                queryable = queryable.Where(filter);
+            if (specialAction is not null)
+                queryable = specialAction(queryable);
+
+            var totalRecord = queryable.LongCount();
+            if (skip.HasValue)
+                queryable = queryable.Skip(skip.Value);
+            if (take.HasValue)
+                queryable = queryable.Take(take.Value);
+
+            return Task.FromResult(new QueryPipelinePage<TModel>
+            {
+                Items = queryable.ToList(),
+                TotalRecord = totalRecord
+            });
         }
     }
 
@@ -671,6 +703,8 @@ public sealed class QueryPipelineFlowTests
         Assert.Contains("ThenQueryMany", methods);
         Assert.Contains("ThenQueryOneFromQueryable", methods);
         Assert.Contains("ThenQueryManyFromQueryable", methods);
+        Assert.Contains("ThenQueryPaginated", methods);
+        Assert.Contains("ThenQueryPaginatedFromQueryable", methods);
         Assert.Contains("WithResult", methods);
     }
 
@@ -685,6 +719,285 @@ public sealed class QueryPipelineFlowTests
             .WithResult<int>(_ => 0);
 
         Assert.Equal(3, builder.Steps.Count);
+    }
+
+    [Fact]
+    public void IQueryPipelinePaginatedStep_ShouldInherit_IQueryPipelineNextable()
+    {
+        var interfaces = typeof(IQueryPipelinePaginatedStep<>).GetInterfaces();
+        Assert.Contains(interfaces, i =>
+            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryPipelineNextable<>));
+    }
+
+    #endregion
+
+    #region Sort — WithDefaultSortFields
+
+    [Fact]
+    public async Task QueryMany_WithDefaultSortFields_AppliesSort()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { Product = "Cherry", Quantity = 3 });
+        provider.Seed(new OrderItem { Product = "Apple", Quantity = 1 });
+        provider.Seed(new OrderItem { Product = "Banana", Quantity = 2 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryMany<OrderItem>(_ => true)
+            .WithDefaultSortFields(ExpressionOrder<OrderItem>.Of(i => i.Product))
+            .WithResult<List<string>>(items => items.Select(i => i.Product).ToList());
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(["Apple", "Banana", "Cherry"], result);
+    }
+
+    [Fact]
+    public async Task QueryMany_WithDefaultSortFields_DescendingOrder()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { Product = "A", Quantity = 1 });
+        provider.Seed(new OrderItem { Product = "B", Quantity = 3 });
+        provider.Seed(new OrderItem { Product = "C", Quantity = 2 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryMany<OrderItem>(_ => true)
+            .WithDefaultSortFields(ExpressionOrder<OrderItem>.Of(i => i.Quantity, isAsc: false))
+            .WithResult<List<int>>(items => items.Select(i => i.Quantity).ToList());
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal([3, 2, 1], result);
+    }
+
+    [Fact]
+    public async Task QueryMany_WithDefaultSortFields_CombinedWithSpecialAction()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { Product = "Cherry", Quantity = 5 });
+        provider.Seed(new OrderItem { Product = "Apple", Quantity = 1 });
+        provider.Seed(new OrderItem { Product = "Banana", Quantity = 3 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryMany<OrderItem>(_ => true)
+            .WithSpecialAction(q => q.Where(i => i.Quantity > 1))
+            .WithDefaultSortFields(ExpressionOrder<OrderItem>.Of(i => i.Product))
+            .WithResult<List<string>>(items => items.Select(i => i.Product).ToList());
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(["Banana", "Cherry"], result);
+    }
+
+    #endregion
+
+    #region Single Step — QueryPaginated
+
+    [Fact]
+    public async Task QueryPaginated_ReturnsPageWithTotalRecord()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+        for (var i = 0; i < 10; i++)
+            provider.Seed(new OrderItem { Product = $"Item{i}", Quantity = i });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryPaginated<OrderItem>(_ => true, skip: 0, take: 3)
+            .WithResult<(int count, long total)>(page => (page.Items.Count, page.TotalRecord));
+
+        var result = await ExecutePipeline(builder, provider);
+
+        Assert.Equal(3, result.count);
+        Assert.Equal(10, result.total);
+        Assert.Equal(["GetPaginated:OrderItem"], provider.Operations);
+    }
+
+    [Fact]
+    public async Task QueryPaginated_SkipAndTake()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+        for (var i = 0; i < 5; i++)
+            provider.Seed(new OrderItem { Product = $"Item{i}", Quantity = i });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryPaginated<OrderItem>(_ => true, skip: 2, take: 2)
+            .WithResult<int>(page => page.Items.Count);
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(2, result);
+    }
+
+    [Fact]
+    public async Task QueryPaginated_WithFilter()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "A", Quantity = 1 });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "B", Quantity = 2 });
+        provider.Seed(new OrderItem { OrderId = Guid.NewGuid(), Product = "C", Quantity = 3 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryPaginated<OrderItem>(i => i.OrderId == orderId, skip: 0, take: 10)
+            .WithResult<(int count, long total)>(page => (page.Items.Count, page.TotalRecord));
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(2, result.count);
+        Assert.Equal(2, result.total);
+    }
+
+    [Fact]
+    public async Task QueryPaginated_WithSpecialAction()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+        for (var i = 0; i < 10; i++)
+            provider.Seed(new OrderItem { Product = $"Item{i}", Quantity = i });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryPaginated<OrderItem>(_ => true, skip: 0, take: 10)
+            .WithSpecialAction(q => q.Where(i => i.Quantity >= 5))
+            .WithResult<long>(page => page.TotalRecord);
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(5, result);
+    }
+
+    #endregion
+
+    #region Multi-Step — Paginated Transitions
+
+    [Fact]
+    public async Task QueryOne_ThenQueryPaginated()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new Order { Id = orderId, CustomerName = "Alice" });
+        for (var i = 0; i < 5; i++)
+            provider.Seed(new OrderItem { OrderId = orderId, Product = $"Item{i}", Quantity = i });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryOne<Order>(o => o.Id == orderId)
+            .WithErrorIfNull(new Error("Not found"))
+            .ThenQueryPaginated<OrderItem>(order => item => item.OrderId == order.Id, skip: 0, take: 3)
+            .WithResult<(int count, long total)>(page => (page.Items.Count, page.TotalRecord));
+
+        var result = await ExecutePipeline(builder, provider);
+
+        Assert.Equal(3, result.count);
+        Assert.Equal(5, result.total);
+        Assert.Equal(["GetOne:Order", "GetPaginated:OrderItem"], provider.Operations);
+    }
+
+    [Fact]
+    public async Task QueryMany_ThenQueryPaginated()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "A" });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "B" });
+        for (var i = 0; i < 4; i++)
+            provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = i * 10 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryMany<OrderItem>(item => item.OrderId == orderId)
+            .ThenQueryPaginated<Inventory>(_ => inv => true, skip: 1, take: 2)
+            .WithResult<(int count, long total)>(page => (page.Items.Count, page.TotalRecord));
+
+        var result = await ExecutePipeline(builder, provider);
+
+        Assert.Equal(2, result.count);
+        Assert.Equal(4, result.total);
+        Assert.Equal(["GetMany:OrderItem", "GetPaginated:Inventory"], provider.Operations);
+    }
+
+    [Fact]
+    public async Task QueryOne_ThenQueryPaginatedFromQueryable()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new Order { Id = orderId, CustomerName = "Alice" });
+        for (var i = 0; i < 6; i++)
+            provider.Seed(new OrderItem { OrderId = orderId, Product = $"Item{i}", Quantity = i });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryOne<Order>(o => o.Id == orderId)
+            .ThenQueryPaginatedFromQueryable<OrderItem>(
+                (order, q) => q.Where(item => item.OrderId == order.Id && item.Quantity > 2),
+                skip: 0, take: 10)
+            .WithResult<long>(page => page.TotalRecord);
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(3, result); // Quantity 3,4,5
+    }
+
+    [Fact]
+    public async Task QueryPaginated_ThenQueryOne_ChainFromPage()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "Widget", Quantity = 3 });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "Gadget", Quantity = 1 });
+        provider.Seed(new ShippingInfo { OrderId = orderId, TrackingNumber = "TRACK-PAGE" });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryPaginated<OrderItem>(i => i.OrderId == orderId, skip: 0, take: 10)
+            .ThenQueryOne<ShippingInfo>(page =>
+                s => s.OrderId == page.Items.First().OrderId)
+            .WithErrorIfNull(new Error("No shipping"))
+            .WithResult<string>(s => s.TrackingNumber);
+
+        var result = await ExecutePipeline(builder, provider);
+
+        Assert.Equal("TRACK-PAGE", result);
+        Assert.Equal(["GetPaginated:OrderItem", "GetOne:ShippingInfo"], provider.Operations);
+    }
+
+    [Fact]
+    public async Task QueryPaginated_ThenQueryMany()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "A", Quantity = 1 });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "B", Quantity = 2 });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 10 });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 20 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryPaginated<OrderItem>(i => i.OrderId == orderId, skip: 0, take: 10)
+            .ThenQueryMany<Inventory>(page => inv => true)
+            .WithResult<int>(inventories => inventories.Sum(i => i.Stock));
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(30, result);
+    }
+
+    [Fact]
+    public async Task QueryPaginated_WithResult_AccessPageData()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+        for (var i = 0; i < 8; i++)
+            provider.Seed(new OrderItem { Product = $"P{i}", Quantity = i + 1 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryPaginated<OrderItem>(_ => true, skip: 2, take: 3)
+            .WithResult<Dictionary<string, object>>(page => new Dictionary<string, object>
+            {
+                ["items"] = page.Items.Count,
+                ["total"] = page.TotalRecord,
+                ["hasMore"] = page.TotalRecord > 2 + 3
+            });
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(3, result["items"]);
+        Assert.Equal(8L, result["total"]);
+        Assert.Equal(true, result["hasMore"]);
     }
 
     #endregion

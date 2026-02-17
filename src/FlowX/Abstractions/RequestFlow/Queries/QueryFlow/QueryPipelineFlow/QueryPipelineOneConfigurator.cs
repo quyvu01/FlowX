@@ -73,6 +73,33 @@ internal sealed class QueryPipelineOneConfigurator<TModel, TPrev> :
         return new QueryPipelineManyConfigurator<TNext, TModel>(_pipeline, step);
     }
 
+    // ===== IQueryPipelineNextable<TModel> — Paginated =====
+
+    IQueryPipelinePaginatedStep<TNext> IQueryPipelineNextable<TModel>.ThenQueryPaginated<TNext>(
+        Func<TModel, Expression<Func<TNext, bool>>> filterFactory,
+        int? skip, int? take, string sortedFields)
+    {
+        var step = new QueryPaginatedPipelineStep<TNext, TModel>
+        {
+            FilterFactory = filterFactory, Skip = skip, Take = take, SortedFields = sortedFields
+        };
+        _pipeline.StepEntries.Add(step);
+        return new QueryPipelinePaginatedConfigurator<TNext, TModel>(_pipeline, step);
+    }
+
+    IQueryPipelinePaginatedStep<TNext> IQueryPipelineNextable<TModel>.ThenQueryPaginatedFromQueryable<TNext>(
+        Func<TModel, IQueryable<TNext>, IQueryable<TNext>> queryableFactory,
+        int? skip, int? take, string sortedFields)
+    {
+        var step = new QueryPaginatedPipelineStep<TNext, TModel>
+        {
+            SpecialActionFactory = prev => q => queryableFactory(prev, q),
+            Skip = skip, Take = take, SortedFields = sortedFields
+        };
+        _pipeline.StepEntries.Add(step);
+        return new QueryPipelinePaginatedConfigurator<TNext, TModel>(_pipeline, step);
+    }
+
     // ===== IQueryPipelineNextable<TModel> — Terminal =====
 
     IQueryPipelineResultTerminal<TResult> IQueryPipelineNextable<TModel>.WithResult<TResult>(
