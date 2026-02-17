@@ -9,7 +9,6 @@ using FlowX.Azure.ServiceBus.Wrappers;
 using FlowX.Extensions;
 using FlowX.Responses;
 using FlowX.Statics;
-using FlowX.Wrappers;
 
 namespace FlowX.Azure.ServiceBus.Implementations;
 

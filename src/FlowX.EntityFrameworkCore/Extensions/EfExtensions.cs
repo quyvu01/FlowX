@@ -8,7 +8,6 @@ using FlowX.EntityFrameworkCore.Repositories;
 using FlowX.Extensions;
 using FlowX.Wrappers;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace FlowX.EntityFrameworkCore.Extensions;
 
@@ -45,11 +44,7 @@ public static class EfExtensions
         flowXRegisterWrapped.FlowXRegister
             .AddPipelines(c => c
                 .OfType(typeof(UnitOfWorkStatePipeline<,>))
-                .OfType(typeof(UnitOfWorkStatePipeline<>))
-            );
+                .OfType(typeof(UnitOfWorkStatePipeline<>)));
         return flowXRegisterWrapped;
     }
-
-    private static void AddEfUnitOfWorkAsScope(IServiceCollection serviceCollection) =>
-        serviceCollection.TryAddScoped<IUnitOfWork, EfUnitOfWork>();
 }

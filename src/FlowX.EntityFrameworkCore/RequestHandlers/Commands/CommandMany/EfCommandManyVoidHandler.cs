@@ -3,7 +3,6 @@ using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.CommandManyFlow;
 using FlowX.EntityFrameworkCore.SharedStates;
-using FlowX.Structs;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.CommandMany;
 

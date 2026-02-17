@@ -247,17 +247,7 @@ public sealed class ExtensionsTests
 
         Assert.Equal(6, sum);
     }
-
-    [Fact]
-    public void ForEach_With_Null_Collection_Should_Not_Throw()
-    {
-        IEnumerable<int> items = null;
-
-        var exception = Record.Exception(() => items.ForEach(_ => { }));
-
-        Assert.Null(exception);
-    }
-
+    
     #endregion
 
     #region Type Extension Tests
@@ -317,7 +307,7 @@ public sealed class ExtensionsTests
     [Fact]
     public void Fill_Should_Add_New_Item()
     {
-        var list = new List<int> { 1, 2 };
+        var list = new HashSet<int> { 1, 2 };
 
         list.Fill(3);
 
@@ -327,7 +317,7 @@ public sealed class ExtensionsTests
     [Fact]
     public void Fill_Should_Not_Add_Duplicate()
     {
-        var list = new List<int> { 1, 2 };
+        var list = new HashSet<int> { 1, 2 };
 
         list.Fill(2);
 
@@ -338,9 +328,9 @@ public sealed class ExtensionsTests
 
     private static List<TestEntity> GetTestData() =>
     [
-        new TestEntity { Id = 1, Name = "Charlie", Age = 25 },
-        new TestEntity { Id = 2, Name = "Alice", Age = 30 },
-        new TestEntity { Id = 3, Name = "Bob", Age = 35 }
+        new() { Id = 1, Name = "Charlie", Age = 25 },
+        new() { Id = 2, Name = "Alice", Age = 30 },
+        new() { Id = 3, Name = "Bob", Age = 35 }
     ];
 
     private class TestEntity

@@ -4,7 +4,7 @@ namespace FlowX.Responses;
 /// Represents a unified response wrapper for FlowX request/reply operations.
 /// way to handle both successful responses and error scenarios.
 /// </summary>
-public sealed class Result
+public class Result
 {
     /// <summary>
     /// Gets whether the request was processed successfully.
@@ -20,7 +20,7 @@ public sealed class Result
     /// <summary>
     /// Creates a successful response with the given data.
     /// </summary>
-    /// <returns>A successful T containing the data.</returns>
+    /// <returns>A successful result.</returns>
     public static Result Success() => new()
     {
         IsSuccess = true,
@@ -31,7 +31,7 @@ public sealed class Result
     /// Creates a failed response with fault information.
     /// </summary>
     /// <param name="fault">The fault information.</param>
-    /// <returns>A failed T containing the fault.</returns>
+    /// <returns>A failed result containing the fault.</returns>
     public static Result Failed(Fault fault) => new()
     {
         IsSuccess = false,
@@ -43,7 +43,7 @@ public sealed class Result
     /// </summary>
     /// <param name="exception">The exception that caused the failure.</param>
     /// <param name="faultedMessageId">Optional identifier for the faulted message.</param>
-    /// <returns>A failed T containing the fault information.</returns>
+    /// <returns>A failed result containing the fault information.</returns>
     public static Result Failed(Exception exception, string faultedMessageId = null) => new()
     {
         IsSuccess = false,
@@ -51,24 +51,13 @@ public sealed class Result
     };
 }
 
-public sealed class Result<T>
+public sealed class Result<T> : Result
 {
     /// <summary>
-    /// Gets whether the request was processed successfully.
-    /// </summary>
-    public bool IsSuccess { get; init; }
-
-    /// <summary>
     /// Gets the response data when the request is successful.
-    /// Will be null when <see cref="IsSuccess"/> is false.
+    /// Will be null when <see cref="Result.IsSuccess"/> is false.
     /// </summary>
     public T Data { get; init; }
-
-    /// <summary>
-    /// Gets the fault information when the request failed.
-    /// Will be null when <see cref="IsSuccess"/> is true.
-    /// </summary>
-    public Fault Fault { get; init; }
 
     /// <summary>
     /// Creates a successful response with the given data.
@@ -87,7 +76,7 @@ public sealed class Result<T>
     /// </summary>
     /// <param name="fault">The fault information.</param>
     /// <returns>A failed T containing the fault.</returns>
-    public static Result<T> Failed(Fault fault) => new()
+    public new static Result<T> Failed(Fault fault) => new()
     {
         IsSuccess = false,
         Data = default,
@@ -100,7 +89,7 @@ public sealed class Result<T>
     /// <param name="exception">The exception that caused the failure.</param>
     /// <param name="faultedMessageId">Optional identifier for the faulted message.</param>
     /// <returns>A failed T containing the fault information.</returns>
-    public static Result<T> Failed(Exception exception, string faultedMessageId = null) => new()
+    public new static Result<T> Failed(Exception exception, string faultedMessageId = null) => new()
     {
         IsSuccess = false,
         Data = default,

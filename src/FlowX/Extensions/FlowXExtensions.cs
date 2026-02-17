@@ -4,7 +4,6 @@ using FlowX.Cached;
 using FlowX.Implementations;
 using FlowX.Internals;
 using FlowX.Registries;
-using FlowX.Statics;
 using FlowX.Wrappers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -17,45 +16,46 @@ public static class FlowXExtensions
     private const int MaxTypesClosing = 100;
     private const int MaxGenericTypeRegistrations = 125000;
 
-    public static FlowXRegisterWrapped AddFlowX(this IServiceCollection serviceCollection,
+    public static FlowXRegisterWrapped AddFlowX(this IServiceCollection services,
         Action<FlowXRegister> options)
     {
-        var newFlowXRegister = new FlowXRegister(serviceCollection);
-        options.Invoke(newFlowXRegister);
-        serviceCollection.AddTransient(typeof(FlowPipelinesImpl<,>));
-        serviceCollection.AddTransient(typeof(FlowPipelinesImpl<>));
-        serviceCollection.AddTransient<IMediator, MediatorSender>();
+        var flowXRegister = new FlowXRegister(services);
+        options.Invoke(flowXRegister);
+        var handlersFromNamespaceContaining = flowXRegister
+            .HandlersFromNamespacesContaining;
+        services.AddTransient(typeof(FlowPipelinesImpl<,>));
+        services.AddTransient(typeof(FlowPipelinesImpl<>));
+        services.AddTransient<IMediator, MediatorSender>();
 
-        ConnectImplementationsToTypesClosing(typeof(IRequestHandler<,>), serviceCollection,
-            [FlowXStatics.HandlersFromNamespaceContaining], false, CancellationToken.None);
+        ConnectImplementationsToTypesClosing(typeof(IRequestHandler<,>), services,
+            handlersFromNamespaceContaining, false, CancellationToken.None);
 
-        ConnectImplementationsToTypesClosing(typeof(IRequestHandler<>), serviceCollection,
-            [FlowXStatics.HandlersFromNamespaceContaining], false, CancellationToken.None);
-
-        serviceCollection
-            .ForEach(c =>
+        ConnectImplementationsToTypesClosing(typeof(IRequestHandler<>), services,
+            handlersFromNamespaceContaining, false, CancellationToken.None);
+        var requestMapResponses = FlowXCached.InternalRequestMapResponse.Value;
+        services.ForEach(c =>
+        {
+            if (!c.ServiceType.IsGenericType) return;
+            var genericTypeDefinition = c.ServiceType.GetGenericTypeDefinition();
+            if (genericTypeDefinition == typeof(IRequestHandler<,>))
             {
-                if (!c.ServiceType.IsGenericType) return;
-                var genericTypeDefinition = c.ServiceType.GetGenericTypeDefinition();
-                if (genericTypeDefinition == typeof(IRequestHandler<,>))
-                {
-                    var args = c.ServiceType.GetGenericArguments();
-                    FlowXCached.InternalRequestMapResponse.Value.TryAdd(args.First(), args.Last());
-                }
-                else if (genericTypeDefinition == typeof(IRequestHandler<>))
-                {
-                    var args = c.ServiceType.GetGenericArguments();
-                    FlowXCached.InternalRequestMapResponse.Value.TryAdd(args.First(), typeof(void));
-                }
-            });
-        serviceCollection.AddTransient(typeof(IRequestHandler<,>), typeof(DefaultRequestHandler<,>));
-        serviceCollection.AddTransient(typeof(IRequestHandler<>), typeof(DefaultRequestHandler<>));
-        newFlowXRegister.AddPipelines(c => c
+                var args = c.ServiceType.GetGenericArguments();
+                requestMapResponses.TryAdd(args.First(), args.Last());
+            }
+            else if (genericTypeDefinition == typeof(IRequestHandler<>))
+            {
+                var requestType = c.ServiceType.GetGenericArguments()[0];
+                requestMapResponses.TryAdd(requestType, typeof(void));
+            }
+        });
+        services.AddTransient(typeof(IRequestHandler<,>), typeof(DefaultRequestHandler<,>));
+        services.AddTransient(typeof(IRequestHandler<>), typeof(DefaultRequestHandler<>));
+        flowXRegister.AddPipelines(c => c
             .OfType(typeof(TransportPipeline<,>))
             .OfType(typeof(TransportPipeline<>))
-            .OfType(typeof(PagedPipeline<,>))
-        );
-        return new FlowXRegisterWrapped(newFlowXRegister);
+            .OfType(typeof(PagedPipeline<,>)));
+        
+        return new FlowXRegisterWrapped(flowXRegister);
     }
 
     private static void ConnectImplementationsToTypesClosing(Type openRequestInterface,
@@ -65,9 +65,9 @@ public static class FlowXExtensions
         CancellationToken cancellationToken = default)
     {
         var concretions = new List<Type>();
-        var interfaces = new List<Type>();
+        var interfaces = new HashSet<Type>();
+        var genericInterfaces = new HashSet<Type>();
         var genericConcretions = new List<Type>();
-        var genericInterfaces = new List<Type>();
 
         var types = assembliesToScan
             .SelectMany(a => a.DefinedTypes)
@@ -186,8 +186,7 @@ public static class FlowXExtensions
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(type =>
                     type.IsClass && !type.IsAbstract &&
-                    constraints.All(constraint => constraint.IsAssignableFrom(type))).ToList()
-            ).ToList();
+                    constraints.All(constraint => constraint.IsAssignableFrom(type))).ToList()).ToList();
 
         var requestType = openRequestHandlerInterface.GenericTypeArguments.First();
 
@@ -228,8 +227,7 @@ public static class FlowXExtensions
             }
         }
 
-        if (depth >= lists.Count)
-            return [[]];
+        if (depth >= lists.Count) return [[]];
 
         cancellationToken.ThrowIfCancellationRequested();
 

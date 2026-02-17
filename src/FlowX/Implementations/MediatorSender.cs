@@ -57,7 +57,7 @@ internal sealed class MediatorSender(IServiceProvider serviceProvider) : IMediat
             return exp;
         });
         var requestHandlerWrapper = func.Invoke();
-        await requestHandlerWrapper.HandleAsync((IRequest)request, serviceProvider,
+        await requestHandlerWrapper.HandleAsync(request, serviceProvider,
             context?.CancellationToken ?? CancellationToken.None);
     }
 
@@ -67,11 +67,8 @@ internal sealed class MediatorSender(IServiceProvider serviceProvider) : IMediat
         if (request is not IRequestBase) throw new FlowXExceptions.RequestIsNotRequestBase(request.GetType());
 
         // Handle void requests (IRequest without TResult)
-        if (request is IRequest voidRequest)
-        {
-            await Send(voidRequest, context);
-            return null;
-        }
+        if (request is IRequest)
+            throw new FlowXExceptions.RequestMustBeIRequestOpened(request.GetType());
 
         var handlerWrapper = RequestHandlersWithResult.GetOrAdd(request.GetType(), static rq =>
         {

@@ -143,11 +143,7 @@ public static partial class Extensions
         }
     }
 
-    public static void Fill<T>(this IList<T> list, T value)
-    {
-        if (list.Contains(value)) return;
-        list.Add(value);
-    }
+    public static void Fill<T>(this HashSet<T> list, T value) => list.Add(value);
 
     [GeneratedRegex(@"^(?<prop>[A-Za-z_][A-Za-z0-9_]*)(\s+(?<dir>asc|desc))?$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-VN")]

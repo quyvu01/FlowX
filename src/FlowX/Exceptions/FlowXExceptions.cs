@@ -16,6 +16,6 @@ public static class FlowXExceptions
             $"Ambiguous request type detected: {requestType.FullName}. A single class cannot implement multiple IRequest<> interfaces.");
 
 
-    public sealed class RequestDoesNotMatchWithResponse(Type requestType)
-        : Exception($"Cannot find response type for Request: {requestType.FullName}.");
+    public sealed class RequestMustBeIRequestOpened(Type requestType)
+        : Exception($"Request type {requestType.FullName} must be implemented from IRequest<TResponse> instead of IRequest.");
 }
