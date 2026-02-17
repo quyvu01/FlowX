@@ -98,6 +98,7 @@ internal class AzureServiceBusServer<TRequest>(
 
     public async Task StartAsync()
     {
+        var tcs = new TaskCompletionSource();
         var requestQueue = typeof(TRequest).GetAzureServiceBusRequestQueue();
         var options = new ServiceBusSessionProcessorOptions
         {
@@ -157,7 +158,13 @@ internal class AzureServiceBusServer<TRequest>(
             _logger?.LogError("Error while process request: {@Error}", args.Exception.Message);
             return Task.CompletedTask;
         };
+        processor.SessionClosingAsync += args =>
+        {
+            _logger?.LogError("Session closing: {@SessionId}", args.SessionId);
+            tcs.SetResult();
+            return Task.CompletedTask;
+        };
         await processor.StartProcessingAsync();
-        await new TaskCompletionSource().Task;
+        await tcs.Task;
     }
 }
