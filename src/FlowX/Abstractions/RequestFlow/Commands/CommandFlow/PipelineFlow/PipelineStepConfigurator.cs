@@ -185,6 +185,19 @@ internal sealed class PipelineStepConfigurator<TModel, TPrev> :
         return this;
     }
 
+    IPipelineResultTerminal<TResult> IPipelineNextable<TModel>.WithResultIfSucceed<TResult>(
+        Func<TModel, TResult> resultFunc)
+        => ((IPipelineNextable<TModel>)this).WithResultIfSucceed<TResult>(
+            model => Task.FromResult(resultFunc(model)));
+
+    IPipelineResultTerminal<TResult> IPipelineNextable<TModel>.WithResultIfSucceed<TResult>(
+        Func<TModel, Task<TResult>> resultFuncAsync)
+    {
+        _pipeline.ResultFuncAsyncValue = new Func<object, Task<TResult>>(
+            obj => resultFuncAsync((TModel)obj));
+        return new PipelineResultConfigurator<TResult>(_pipeline);
+    }
+
     // ===== IPipelineAfterDone<TModel> =====
 
     IPipelineCreateStep<TNext> IPipelineAfterDone<TModel>.ThenCreateOne<TNext>(Func<TModel, TNext> factory)
@@ -204,6 +217,14 @@ internal sealed class PipelineStepConfigurator<TModel, TPrev> :
 
     IPipelineTerminal IPipelineAfterDone<TModel>.WithErrorIfSaveChange(Error error)
         => ((IPipelineNextable<TModel>)this).WithErrorIfSaveChange(error);
+
+    IPipelineResultTerminal<TResult> IPipelineAfterDone<TModel>.WithResultIfSucceed<TResult>(
+        Func<TModel, TResult> resultFunc)
+        => ((IPipelineNextable<TModel>)this).WithResultIfSucceed(resultFunc);
+
+    IPipelineResultTerminal<TResult> IPipelineAfterDone<TModel>.WithResultIfSucceed<TResult>(
+        Func<TModel, Task<TResult>> resultFuncAsync)
+        => ((IPipelineNextable<TModel>)this).WithResultIfSucceed(resultFuncAsync);
 
     // ===== IPipelineTerminal =====
 

@@ -19,4 +19,10 @@ public interface IPipelineAfterDone<out TPrev> where TPrev : class
         Func<TPrev, Expression<Func<TModel, bool>>> filterFactory) where TModel : class;
 
     IPipelineTerminal WithErrorIfSaveChange([NotNull] Error error);
+
+    IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>(
+        [NotNull] Func<TPrev, TResult> resultFunc);
+
+    IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>(
+        [NotNull] Func<TPrev, Task<TResult>> resultFuncAsync);
 }

@@ -9,6 +9,7 @@ public class PipelineFlow : IStartPipeline
     internal Error SaveChangesErrorValue;
     internal Func<Task> BeforeExecutionFuncValue;
     internal Func<Task> AfterExecutionFuncValue;
+    internal object ResultFuncAsyncValue;
 
     // === IStartPipeline ===
 

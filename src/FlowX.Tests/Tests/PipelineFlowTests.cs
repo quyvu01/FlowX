@@ -95,6 +95,35 @@ public sealed class PipelineFlowTests
         return prev;
     }
 
+    private static async Task<TResult> ExecuteResultPipeline<TResult>(
+        IPipelineResultFlowBuilder<TResult> builder, IPipelineServiceProvider provider)
+    {
+        if (builder.BeforeExecutionFunc is { } beforeFunc)
+            await beforeFunc.Invoke();
+
+        object prev = null;
+        foreach (var step in builder.Steps)
+        {
+            prev = await step.ExecuteAsync(provider, prev, CancellationToken.None);
+            if (step.IsTransactionBoundary)
+                await provider.SaveChangesAsync(CancellationToken.None);
+        }
+
+        try
+        {
+            await provider.SaveChangesAsync(CancellationToken.None);
+        }
+        catch when (builder.SaveChangesError is { } saveChangesError)
+        {
+            throw saveChangesError;
+        }
+
+        if (builder.AfterExecutionFunc is { } afterFunc)
+            await afterFunc.Invoke();
+
+        return await builder.ResultFuncAsync(prev);
+    }
+
     #region Single Step
 
     [Fact]
@@ -632,4 +661,424 @@ public sealed class PipelineFlowTests
     }
 
     #endregion
+
+    #region Pipeline Result — Single Step
+
+    [Fact]
+    public async Task Result_SingleCreate_SyncResultFunc()
+    {
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+        var orderId = Guid.NewGuid();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
+            .WithResultIfSucceed<Guid>(order => order.Id);
+
+        var result = await ExecuteResultPipeline(builder, provider);
+
+        Assert.Equal(orderId, result);
+        Assert.Equal(["Create:Order", "SaveChanges"], provider.Operations);
+    }
+
+    [Fact]
+    public async Task Result_SingleCreate_AsyncResultFunc()
+    {
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+        var orderId = Guid.NewGuid();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = orderId, CustomerName = "Bob" })
+            .WithResultIfSucceed<string>(async order =>
+            {
+                await Task.Delay(1);
+                return order.CustomerName;
+            });
+
+        var result = await ExecuteResultPipeline(builder, provider);
+        Assert.Equal("Bob", result);
+    }
+
+    [Fact]
+    public async Task Result_SingleUpdate_ReturnsTransformedResult()
+    {
+        var productId = Guid.NewGuid();
+        var provider = new InMemoryServiceProvider();
+        provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
+
+        var flow = new PipelineFlow();
+        var builder = ((IStartPipeline)flow)
+            .UpdateOne<Inventory>(inv => inv.ProductId == productId)
+            .WithErrorIfNull(new Error("Not found"))
+            .WithModify(inv => inv.Quantity -= 3)
+            .WithResultIfSucceed<int>(inv => inv.Quantity);
+
+        var result = await ExecuteResultPipeline(builder, provider);
+        Assert.Equal(7, result);
+    }
+
+    #endregion
+
+    #region Pipeline Result — Multi-Step Chain
+
+    [Fact]
+    public async Task Result_MultiStep_ResultFromLastStep()
+    {
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+        var orderId = Guid.NewGuid();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
+            .ThenCreateOne<OrderItem>(order => new OrderItem
+            {
+                Id = Guid.NewGuid(),
+                OrderId = order.Id,
+                Product = "Widget",
+                Quantity = 5
+            })
+            .WithResultIfSucceed<string>(item => $"{item.Product}:{item.Quantity}");
+
+        var result = await ExecuteResultPipeline(builder, provider);
+
+        Assert.Equal("Widget:5", result);
+        Assert.Equal(["Create:Order", "Create:OrderItem", "SaveChanges"], provider.Operations);
+    }
+
+    [Fact]
+    public async Task Result_ThreeSteps_ResultFromLastStep()
+    {
+        var productId = Guid.NewGuid();
+        var provider = new InMemoryServiceProvider();
+        provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
+
+        var flow = new PipelineFlow();
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
+            .ThenCreateOne<OrderItem>(order => new OrderItem
+            {
+                OrderId = order.Id,
+                Product = "Widget",
+                Quantity = 2
+            })
+            .ThenUpdateOne<Inventory>(_ => inv => inv.ProductId == productId)
+            .WithErrorIfNull(new Error("Not found"))
+            .WithModify(inv => inv.Quantity -= 2)
+            .WithResultIfSucceed<int>(inv => inv.Quantity);
+
+        var result = await ExecuteResultPipeline(builder, provider);
+
+        Assert.Equal(8, result);
+    }
+
+    #endregion
+
+    #region Pipeline Result — After Done
+
+    [Fact]
+    public async Task Result_AfterDone_WithResultIfSucceed()
+    {
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+        var orderId = Guid.NewGuid();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
+            .Done()
+            .ThenCreateOne<OrderItem>(order => new OrderItem
+            {
+                OrderId = order.Id,
+                Product = "Widget",
+                Quantity = 3
+            })
+            .WithResultIfSucceed<Guid>(item => item.OrderId);
+
+        var result = await ExecuteResultPipeline(builder, provider);
+
+        Assert.Equal(orderId, result);
+        Assert.Equal(
+            ["Create:Order", "SaveChanges", "Create:OrderItem", "SaveChanges"],
+            provider.Operations);
+    }
+
+    [Fact]
+    public async Task Result_AfterDone_AsyncResultFunc()
+    {
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Charlie" })
+            .Done()
+            .ThenCreateOne<AuditLog>(order => new AuditLog { Message = order.CustomerName })
+            .WithResultIfSucceed<string>(async log =>
+            {
+                await Task.Delay(1);
+                return $"Logged: {log.Message}";
+            });
+
+        var result = await ExecuteResultPipeline(builder, provider);
+        Assert.Equal("Logged: Charlie", result);
+    }
+
+    #endregion
+
+    #region Pipeline Result — Hooks and Error Handling
+
+    [Fact]
+    public async Task Result_WithHooks_ExecutesInOrder()
+    {
+        var callOrder = new List<string>();
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
+            .WithResultIfSucceed<string>(order => order.CustomerName)
+            .WithBeforeExecution(() => callOrder.Add("before"))
+            .WithAfterExecution(() => callOrder.Add("after"));
+
+        var result = await ExecuteResultPipeline(builder, provider);
+
+        Assert.Equal("Alice", result);
+        Assert.Equal(["before", "after"], callOrder);
+    }
+
+    [Fact]
+    public async Task Result_WithAsyncHooks_ExecutesInOrder()
+    {
+        var callOrder = new List<string>();
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Bob" })
+            .WithResultIfSucceed<string>(order => order.CustomerName)
+            .WithBeforeExecution(async () =>
+            {
+                await Task.Delay(1);
+                callOrder.Add("before-async");
+            })
+            .WithAfterExecution(async () =>
+            {
+                await Task.Delay(1);
+                callOrder.Add("after-async");
+            });
+
+        var result = await ExecuteResultPipeline(builder, provider);
+
+        Assert.Equal("Bob", result);
+        Assert.Equal(["before-async", "after-async"], callOrder);
+    }
+
+    [Fact]
+    public async Task Result_WithErrorIfSaveChange_ShouldThrowOnSaveFailure()
+    {
+        var provider = new FailingSaveProvider();
+        var flow = new PipelineFlow();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
+            .WithResultIfSucceed<string>(order => order.CustomerName)
+            .WithErrorIfSaveChange(new Error("Save failed!"));
+
+        var ex = await Assert.ThrowsAsync<Error>(() => ExecuteResultPipeline(builder, provider));
+        Assert.Equal("Save failed!", ex.Message);
+    }
+
+    [Fact]
+    public async Task Result_ConditionFail_ShouldThrowBeforeResult()
+    {
+        var resultFuncCalled = false;
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
+            .WithCondition(_ => new Error("Validation failed"))
+            .WithResultIfSucceed<string>(order =>
+            {
+                resultFuncCalled = true;
+                return order.CustomerName;
+            });
+
+        var ex = await Assert.ThrowsAsync<Error>(() => ExecuteResultPipeline(builder, provider));
+        Assert.Equal("Validation failed", ex.Message);
+        Assert.False(resultFuncCalled);
+    }
+
+    [Fact]
+    public async Task Result_ConditionFail_InLaterStep_ShouldThrow()
+    {
+        var productId = Guid.NewGuid();
+        var provider = new InMemoryServiceProvider();
+        provider.Seed(new Inventory { ProductId = productId, Quantity = 0 });
+
+        var flow = new PipelineFlow();
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
+            .ThenUpdateOne<Inventory>(_ => inv => inv.ProductId == productId)
+            .WithErrorIfNull(new Error("Not found"))
+            .WithCondition(inv => inv.Quantity > 0 ? None.Value : new Error("Out of stock"))
+            .WithResultIfSucceed<int>(inv => inv.Quantity);
+
+        var ex = await Assert.ThrowsAsync<Error>(() => ExecuteResultPipeline(builder, provider));
+        Assert.Equal("Out of stock", ex.Message);
+    }
+
+    [Fact]
+    public async Task Result_NullError_InUpdateStep_ShouldThrow()
+    {
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+
+        var builder = ((IStartPipeline)flow)
+            .UpdateOne<Inventory>(inv => inv.ProductId == Guid.NewGuid())
+            .WithErrorIfNull(new Error("Inventory not found"))
+            .WithResultIfSucceed<int>(inv => inv.Quantity);
+
+        var ex = await Assert.ThrowsAsync<Error>(() => ExecuteResultPipeline(builder, provider));
+        Assert.Equal("Inventory not found", ex.Message);
+    }
+
+    #endregion
+
+    #region Pipeline Result — Complex Scenarios
+
+    [Fact]
+    public async Task Result_FullPipeline_WithDone_Hooks_Conditions_Result()
+    {
+        var productId = Guid.NewGuid();
+        var provider = new InMemoryServiceProvider();
+        provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
+
+        var hookOrder = new List<string>();
+        var flow = new PipelineFlow();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
+            .WithCondition(_ => None.Value)
+            .Done()
+            .ThenCreateOne<OrderItem>(order => new OrderItem
+            {
+                OrderId = order.Id,
+                Product = "Widget",
+                Quantity = 2
+            })
+            .Done()
+            .ThenUpdateOne<Inventory>(_ => inv => inv.ProductId == productId)
+            .WithErrorIfNull(new Error("Not found"))
+            .WithModify(inv => inv.Quantity -= 2)
+            .WithCondition(inv => inv.Quantity >= 0 ? None.Value : new Error("Out of stock"))
+            .WithResultIfSucceed<int>(inv => inv.Quantity)
+            .WithBeforeExecution(() => hookOrder.Add("before"))
+            .WithAfterExecution(() => hookOrder.Add("after"));
+
+        var result = await ExecuteResultPipeline(builder, provider);
+
+        Assert.Equal(8, result);
+        Assert.Equal(["before", "after"], hookOrder);
+        Assert.Equal(
+            [
+                "Create:Order", "SaveChanges",
+                "Create:OrderItem", "SaveChanges",
+                "Get:Inventory", "SaveChanges"
+            ],
+            provider.Operations);
+    }
+
+    [Fact]
+    public async Task Result_ComplexObject_AsResult()
+    {
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+        var orderId = Guid.NewGuid();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
+            .ThenCreateOne<OrderItem>(order => new OrderItem
+            {
+                OrderId = order.Id,
+                Product = "Widget",
+                Quantity = 3
+            })
+            .WithResultIfSucceed<OrderItem>(item => item);
+
+        var result = await ExecuteResultPipeline(builder, provider);
+
+        Assert.Equal(orderId, result.OrderId);
+        Assert.Equal("Widget", result.Product);
+        Assert.Equal(3, result.Quantity);
+    }
+
+    [Fact]
+    public async Task Result_WithModify_ThenResult()
+    {
+        var provider = new InMemoryServiceProvider();
+        var flow = new PipelineFlow();
+
+        var builder = ((IStartPipeline)flow)
+            .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Draft" })
+            .WithModify(o => o.CustomerName = "Final")
+            .WithResultIfSucceed<string>(o => o.CustomerName);
+
+        var result = await ExecuteResultPipeline(builder, provider);
+        Assert.Equal("Final", result);
+    }
+
+    #endregion
+
+    #region Pipeline Result — Interface Reflection
+
+    [Fact]
+    public void IPipelineResultFlowBuilder_ShouldInherit_IPipelineFlowBuilder()
+    {
+        var interfaces = typeof(IPipelineResultFlowBuilder<>).GetInterfaces();
+        Assert.Contains(interfaces, i => i == typeof(IPipelineFlowBuilder));
+    }
+
+    [Fact]
+    public void IPipelineResultTerminal_ShouldInherit_IPipelineResultFlowBuilder()
+    {
+        var interfaces = typeof(IPipelineResultTerminal<>).GetInterfaces();
+        Assert.Contains(interfaces, i =>
+            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPipelineResultFlowBuilder<>));
+    }
+
+    [Fact]
+    public void IPipelineNextable_ShouldHave_WithResultIfSucceed()
+    {
+        var methods = typeof(IPipelineNextable<>).GetMethods();
+        var resultMethods = methods.Where(m => m.Name == "WithResultIfSucceed").ToArray();
+        Assert.Equal(2, resultMethods.Length); // sync + async overloads
+    }
+
+    [Fact]
+    public void IPipelineAfterDone_ShouldHave_WithResultIfSucceed()
+    {
+        var methods = typeof(IPipelineAfterDone<>).GetMethods();
+        var resultMethods = methods.Where(m => m.Name == "WithResultIfSucceed").ToArray();
+        Assert.Equal(2, resultMethods.Length); // sync + async overloads
+    }
+
+    #endregion
+
+    // === Failing provider for SaveChanges error tests ===
+
+    private sealed class FailingSaveProvider : IPipelineServiceProvider
+    {
+        public Task<TModel> CreateOneAsync<TModel>(TModel model, CancellationToken ct) where TModel : class
+            => Task.FromResult(model);
+
+        public Task<TModel> GetFirstByConditionAsync<TModel>(
+            Expression<Func<TModel, bool>> filter, CancellationToken ct) where TModel : class
+            => Task.FromResult<TModel>(null);
+
+        public Task RemoveOneAsync<TModel>(TModel model, CancellationToken ct) where TModel : class
+            => Task.CompletedTask;
+
+        public Task SaveChangesAsync(CancellationToken ct)
+            => throw new InvalidOperationException("DB error");
+    }
 }

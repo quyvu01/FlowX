@@ -21,4 +21,10 @@ public interface IPipelineNextable<out TModel> where TModel : class
         Func<TModel, Expression<Func<TNext, bool>>> filterFactory) where TNext : class;
 
     IPipelineTerminal WithErrorIfSaveChange([NotNull] Error error);
+
+    IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>(
+        [NotNull] Func<TModel, TResult> resultFunc);
+
+    IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>(
+        [NotNull] Func<TModel, Task<TResult>> resultFuncAsync);
 }
