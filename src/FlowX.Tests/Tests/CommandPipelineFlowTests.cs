@@ -1,12 +1,13 @@
 using System.Linq.Expressions;
 using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.PipelineFlow;
 using FlowX.Errors;
+using FlowX.Extensions;
 using FlowX.Structs;
 using Xunit;
 
 namespace FlowX.Tests.Tests;
 
-public sealed class PipelineFlowTests
+public sealed class CommandPipelineFlowTests
 {
     // === Test Models ===
 
@@ -72,6 +73,32 @@ public sealed class PipelineFlowTests
             return Task.CompletedTask;
         }
 
+        public Task<List<TModel>> CreateManyAsync<TModel>(List<TModel> models, CancellationToken ct)
+            where TModel : class
+        {
+            Operations.Add($"CreateMany:{typeof(TModel).Name}");
+            var news = models.ToList();
+            news.ForEach(model => _store[typeof(TModel)].Add(model));
+            return Task.FromResult(news);
+        }
+
+        public Task<List<TModel>> GetManyByConditionAsync<TModel>(Expression<Func<TModel, bool>> filter,
+            CancellationToken ct) where TModel : class
+        {
+            Operations.Add($"GetMany:{typeof(TModel).Name}");
+            if (!_store.TryGetValue(typeof(TModel), out var list)) return Task.FromResult<List<TModel>>([]);
+            var compiled = filter.Compile();
+            return Task.FromResult<List<TModel>>([..list.OfType<TModel>().Where(compiled)]);
+        }
+
+        public Task RemoveManyAsync<TModel>(List<TModel> models, CancellationToken ct) where TModel : class
+        {
+            Operations.Add($"Remove:{typeof(TModel).Name}");
+            var stored = _store.GetValueOrDefault(typeof(TModel));
+            models.ForEach(model => stored?.Remove(model));
+            return Task.CompletedTask;
+        }
+
         public Task SaveChangesAsync(CancellationToken ct)
         {
             Operations.Add("SaveChanges");
@@ -130,8 +157,8 @@ public sealed class PipelineFlowTests
     public async Task SingleCreate_ShouldCreateAndSave()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .WithErrorIfSaveChange(new Error("Failed"));
 
@@ -146,8 +173,8 @@ public sealed class PipelineFlowTests
     public async Task SingleCreate_WithFactory_ShouldCreate()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(() => new Order { Id = Guid.NewGuid(), CustomerName = "Bob" })
             .WithErrorIfSaveChange(new Error("Failed"));
 
@@ -159,8 +186,8 @@ public sealed class PipelineFlowTests
     public async Task SingleCreate_WithAsyncFactory_ShouldCreate()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(async () =>
             {
                 await Task.Delay(1);
@@ -180,10 +207,10 @@ public sealed class PipelineFlowTests
     public async Task TwoSteps_Create_ThenCreate_PreviousResultPassed()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
         var orderId = Guid.NewGuid();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
             .ThenCreateOne<OrderItem>(order => new OrderItem
             {
@@ -209,8 +236,8 @@ public sealed class PipelineFlowTests
         var provider = new InMemoryServiceProvider();
         provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
 
-        var flow = new PipelineFlow();
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .ThenCreateOne<OrderItem>(order => new OrderItem
             {
@@ -239,14 +266,14 @@ public sealed class PipelineFlowTests
     public async Task Done_ShouldInsertSaveChanges()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
         var orderId = Guid.NewGuid();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
-            .Done()
+            .Done().WithErrorIfSaveChange(new Error("Failed"))
             .ThenCreateOne<OrderItem>(order => new OrderItem { OrderId = order.Id, Product = "A" })
-            .Done()
+            .Done().WithErrorIfSaveChange(new Error("Failed"))
             .ThenCreateOne<AuditLog>(_ => new AuditLog { Message = "done" })
             .WithErrorIfSaveChange(new Error("Failed"));
 
@@ -254,9 +281,9 @@ public sealed class PipelineFlowTests
 
         Assert.Equal(
             [
-                "Create:Order", "SaveChanges",           // Done #1
-                "Create:OrderItem", "SaveChanges",       // Done #2
-                "Create:AuditLog", "SaveChanges"         // Final
+                "Create:Order", "SaveChanges", // Done #1
+                "Create:OrderItem", "SaveChanges", // Done #2
+                "Create:AuditLog", "SaveChanges" // Final
             ],
             provider.Operations);
     }
@@ -265,9 +292,9 @@ public sealed class PipelineFlowTests
     public async Task NoDone_SingleSaveChanges()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .ThenCreateOne<OrderItem>(order => new OrderItem { OrderId = order.Id, Product = "A" })
             .ThenCreateOne<AuditLog>(_ => new AuditLog { Message = "done" })
@@ -283,11 +310,11 @@ public sealed class PipelineFlowTests
     [Fact]
     public void Done_SetsTransactionBoundary()
     {
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid() })
-            .Done()
+            .Done().WithErrorIfSaveChange(new Error("Failed"))
             .ThenCreateOne<OrderItem>(_ => new OrderItem())
             .WithErrorIfSaveChange(new Error("Failed"));
 
@@ -303,9 +330,9 @@ public sealed class PipelineFlowTests
     public async Task Condition_PassingCondition_ShouldContinue()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .WithCondition(_ => None.Value)
             .WithErrorIfSaveChange(new Error("Failed"));
@@ -318,9 +345,9 @@ public sealed class PipelineFlowTests
     public async Task Condition_FailingCondition_ShouldThrow()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .WithCondition(_ => new Error("Validation failed"))
             .WithErrorIfSaveChange(new Error("Failed"));
@@ -335,9 +362,9 @@ public sealed class PipelineFlowTests
     {
         var secondConditionCalled = false;
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid() })
             .WithCondition(_ => new Error("First fails"))
             .WithCondition(_ =>
@@ -356,13 +383,25 @@ public sealed class PipelineFlowTests
     {
         var callOrder = new List<int>();
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid() })
-            .WithCondition(_ => { callOrder.Add(1); return None.Value; })
-            .WithCondition(_ => { callOrder.Add(2); return None.Value; })
-            .WithCondition(_ => { callOrder.Add(3); return None.Value; })
+            .WithCondition(_ =>
+            {
+                callOrder.Add(1);
+                return None.Value;
+            })
+            .WithCondition(_ =>
+            {
+                callOrder.Add(2);
+                return None.Value;
+            })
+            .WithCondition(_ =>
+            {
+                callOrder.Add(3);
+                return None.Value;
+            })
             .WithErrorIfSaveChange(new Error("Failed"));
 
         await ExecutePipeline(builder, provider);
@@ -377,9 +416,9 @@ public sealed class PipelineFlowTests
     public async Task WithModify_ShouldMutateBeforeCreate()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Draft" })
             .WithModify(o => o.CustomerName = "Final")
             .WithErrorIfSaveChange(new Error("Failed"));
@@ -395,8 +434,8 @@ public sealed class PipelineFlowTests
         var provider = new InMemoryServiceProvider();
         provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
 
-        var flow = new PipelineFlow();
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .UpdateOne<Inventory>(inv => inv.ProductId == productId)
             .WithErrorIfNull(new Error("Not found"))
             .WithModify(inv => inv.Quantity = 5)
@@ -414,9 +453,9 @@ public sealed class PipelineFlowTests
     public async Task UpdateStep_NotFound_ShouldThrowNullError()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .UpdateOne<Inventory>(inv => inv.ProductId == Guid.NewGuid())
             .WithErrorIfNull(new Error("Inventory not found"))
             .WithErrorIfSaveChange(new Error("Failed"));
@@ -429,9 +468,9 @@ public sealed class PipelineFlowTests
     public async Task RemoveStep_NotFound_ShouldThrowNullError()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .RemoveOne<Inventory>(inv => inv.ProductId == Guid.NewGuid())
             .WithErrorIfNull(new Error("Not found"))
             .WithErrorIfSaveChange(new Error("Failed"));
@@ -447,8 +486,8 @@ public sealed class PipelineFlowTests
         var provider = new InMemoryServiceProvider();
         provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
 
-        var flow = new PipelineFlow();
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .RemoveOne<Inventory>(inv => inv.ProductId == productId)
             .WithErrorIfNull(new Error("Not found"))
             .WithErrorIfSaveChange(new Error("Failed"));
@@ -464,8 +503,8 @@ public sealed class PipelineFlowTests
     [Fact]
     public void Hooks_ShouldBeSet()
     {
-        var flow = new PipelineFlow();
-        var builder = (IPipelineFlowBuilder)((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        var builder = (IPipelineFlowBuilder)((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid() })
             .WithErrorIfSaveChange(new Error("Failed"))
             .WithBeforeExecution(() => { })
@@ -479,8 +518,8 @@ public sealed class PipelineFlowTests
     public async Task Hooks_ShouldInvoke()
     {
         var callOrder = new List<string>();
-        var flow = new PipelineFlow();
-        var builder = (IPipelineFlowBuilder)((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        var builder = (IPipelineFlowBuilder)((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid() })
             .WithErrorIfSaveChange(new Error("Failed"))
             .WithBeforeExecution(() => callOrder.Add("before"))
@@ -494,8 +533,8 @@ public sealed class PipelineFlowTests
     [Fact]
     public void NoHooks_ShouldBeNull()
     {
-        var flow = new PipelineFlow();
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid() })
             .WithErrorIfSaveChange(new Error("Failed"));
 
@@ -511,13 +550,17 @@ public sealed class PipelineFlowTests
     public async Task Closure_CanAccessEarlierStepResult()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
         var orderId = Guid.NewGuid();
         Order capturedOrder = null;
 
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
-            .WithCondition(o => { capturedOrder = o; return None.Value; })
+            .WithCondition(o =>
+            {
+                capturedOrder = o;
+                return None.Value;
+            })
             .ThenCreateOne<OrderItem>(order => new OrderItem { OrderId = order.Id, Product = "Widget" })
             .ThenCreateOne<AuditLog>(_ => new AuditLog
             {
@@ -543,8 +586,8 @@ public sealed class PipelineFlowTests
         provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
         provider.Seed(new AuditLog { Message = "old log" });
 
-        var flow = new PipelineFlow();
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .ThenUpdateOne<Inventory>(_ => inv => inv.ProductId == productId)
             .WithErrorIfNull(new Error("Not found"))
@@ -572,19 +615,19 @@ public sealed class PipelineFlowTests
         provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
 
         var hookOrder = new List<string>();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        var builder = (IPipelineFlowBuilder)((IStartPipeline)flow)
+        var builder = (IPipelineFlowBuilder)((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .WithCondition(_ => None.Value)
-            .Done()
+            .Done().WithErrorIfSaveChange(new Error("Failed"))
             .ThenCreateOne<OrderItem>(order => new OrderItem { OrderId = order.Id, Product = "Widget", Quantity = 2 })
-            .Done()
+            .Done().WithErrorIfSaveChange(new Error("Failed"))
             .ThenUpdateOne<Inventory>(_ => inv => inv.ProductId == productId)
             .WithErrorIfNull(new Error("Not found"))
             .WithModify(inv => inv.Quantity -= 2)
             .WithCondition(inv => inv.Quantity >= 0 ? None.Value : new Error("Out of stock"))
-            .Done()
+            .Done().WithErrorIfSaveChange(new Error("Failed"))
             .ThenCreateOne<AuditLog>(_ => new AuditLog { Message = "Completed" })
             .WithErrorIfSaveChange(new Error("Failed"))
             .WithBeforeExecution(() => hookOrder.Add("before"))
@@ -613,13 +656,13 @@ public sealed class PipelineFlowTests
     [Fact]
     public void IStartPipeline_ShouldExist()
     {
-        Assert.True(typeof(IStartPipeline).IsInterface);
+        Assert.True(typeof(IStartCommandPipeline).IsInterface);
     }
 
     [Fact]
     public void IPipelineCreateStep_ShouldInherit_IPipelineNextable()
     {
-        var interfaces = typeof(IPipelineCreateStep<>).GetInterfaces();
+        var interfaces = typeof(IPipelineOneCreateStep<>).GetInterfaces();
         Assert.Contains(interfaces, i =>
             i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPipelineNextable<>));
     }
@@ -627,7 +670,7 @@ public sealed class PipelineFlowTests
     [Fact]
     public void IPipelineUpdateStep_ShouldInherit_IPipelineNextable()
     {
-        var interfaces = typeof(IPipelineUpdateStep<>).GetInterfaces();
+        var interfaces = typeof(IPipelineOneUpdateStep<>).GetInterfaces();
         Assert.Contains(interfaces, i =>
             i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPipelineNextable<>));
     }
@@ -635,7 +678,7 @@ public sealed class PipelineFlowTests
     [Fact]
     public void IPipelineRemoveStep_ShouldInherit_IPipelineNextable()
     {
-        var interfaces = typeof(IPipelineRemoveStep<>).GetInterfaces();
+        var interfaces = typeof(IPipelineOneRemoveStep<>).GetInterfaces();
         Assert.Contains(interfaces, i =>
             i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPipelineNextable<>));
     }
@@ -650,8 +693,8 @@ public sealed class PipelineFlowTests
     [Fact]
     public void StepCount_MatchesChainLength()
     {
-        var flow = new PipelineFlow();
-        IPipelineFlowBuilder builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        IPipelineFlowBuilder builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid() })
             .ThenCreateOne<OrderItem>(_ => new OrderItem())
             .ThenCreateOne<AuditLog>(_ => new AuditLog())
@@ -668,10 +711,10 @@ public sealed class PipelineFlowTests
     public async Task Result_SingleCreate_SyncResultFunc()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
         var orderId = Guid.NewGuid();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
             .WithResultIfSucceed<Guid>(order => order.Id);
 
@@ -685,10 +728,10 @@ public sealed class PipelineFlowTests
     public async Task Result_SingleCreate_AsyncResultFunc()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
         var orderId = Guid.NewGuid();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = orderId, CustomerName = "Bob" })
             .WithResultIfSucceed<string>(async order =>
             {
@@ -707,8 +750,8 @@ public sealed class PipelineFlowTests
         var provider = new InMemoryServiceProvider();
         provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
 
-        var flow = new PipelineFlow();
-        var builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        var builder = ((IStartCommandPipeline)flow)
             .UpdateOne<Inventory>(inv => inv.ProductId == productId)
             .WithErrorIfNull(new Error("Not found"))
             .WithModify(inv => inv.Quantity -= 3)
@@ -726,10 +769,10 @@ public sealed class PipelineFlowTests
     public async Task Result_MultiStep_ResultFromLastStep()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
         var orderId = Guid.NewGuid();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
             .ThenCreateOne<OrderItem>(order => new OrderItem
             {
@@ -753,8 +796,8 @@ public sealed class PipelineFlowTests
         var provider = new InMemoryServiceProvider();
         provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
 
-        var flow = new PipelineFlow();
-        var builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .ThenCreateOne<OrderItem>(order => new OrderItem
             {
@@ -780,12 +823,12 @@ public sealed class PipelineFlowTests
     public async Task Result_AfterDone_WithResultIfSucceed()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
         var orderId = Guid.NewGuid();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
-            .Done()
+            .Done().WithErrorIfSaveChange(new Error("Failed"))
             .ThenCreateOne<OrderItem>(order => new OrderItem
             {
                 OrderId = order.Id,
@@ -806,11 +849,11 @@ public sealed class PipelineFlowTests
     public async Task Result_AfterDone_AsyncResultFunc()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Charlie" })
-            .Done()
+            .Done().WithErrorIfSaveChange(new Error("Failed"))
             .ThenCreateOne<AuditLog>(order => new AuditLog { Message = order.CustomerName })
             .WithResultIfSucceed<string>(async log =>
             {
@@ -831,9 +874,9 @@ public sealed class PipelineFlowTests
     {
         var callOrder = new List<string>();
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .WithResultIfSucceed<string>(order => order.CustomerName)
             .WithBeforeExecution(() => callOrder.Add("before"))
@@ -850,9 +893,9 @@ public sealed class PipelineFlowTests
     {
         var callOrder = new List<string>();
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Bob" })
             .WithResultIfSucceed<string>(order => order.CustomerName)
             .WithBeforeExecution(async () =>
@@ -876,9 +919,9 @@ public sealed class PipelineFlowTests
     public async Task Result_WithErrorIfSaveChange_ShouldThrowOnSaveFailure()
     {
         var provider = new FailingSaveProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .WithResultIfSucceed<string>(order => order.CustomerName)
             .WithErrorIfSaveChange(new Error("Save failed!"));
@@ -892,9 +935,9 @@ public sealed class PipelineFlowTests
     {
         var resultFuncCalled = false;
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .WithCondition(_ => new Error("Validation failed"))
             .WithResultIfSucceed<string>(order =>
@@ -915,8 +958,8 @@ public sealed class PipelineFlowTests
         var provider = new InMemoryServiceProvider();
         provider.Seed(new Inventory { ProductId = productId, Quantity = 0 });
 
-        var flow = new PipelineFlow();
-        var builder = ((IStartPipeline)flow)
+        var flow = new CommandPipelineFlow();
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .ThenUpdateOne<Inventory>(_ => inv => inv.ProductId == productId)
             .WithErrorIfNull(new Error("Not found"))
@@ -931,9 +974,9 @@ public sealed class PipelineFlowTests
     public async Task Result_NullError_InUpdateStep_ShouldThrow()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .UpdateOne<Inventory>(inv => inv.ProductId == Guid.NewGuid())
             .WithErrorIfNull(new Error("Inventory not found"))
             .WithResultIfSucceed<int>(inv => inv.Quantity);
@@ -954,12 +997,13 @@ public sealed class PipelineFlowTests
         provider.Seed(new Inventory { ProductId = productId, Quantity = 10 });
 
         var hookOrder = new List<string>();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Alice" })
             .WithCondition(_ => None.Value)
             .Done()
+            .WithErrorIfSaveChange(new Error("Save failed!"))
             .ThenCreateOne<OrderItem>(order => new OrderItem
             {
                 OrderId = order.Id,
@@ -967,6 +1011,7 @@ public sealed class PipelineFlowTests
                 Quantity = 2
             })
             .Done()
+            .WithErrorIfSaveChange(new Error("Save failed!"))
             .ThenUpdateOne<Inventory>(_ => inv => inv.ProductId == productId)
             .WithErrorIfNull(new Error("Not found"))
             .WithModify(inv => inv.Quantity -= 2)
@@ -992,10 +1037,10 @@ public sealed class PipelineFlowTests
     public async Task Result_ComplexObject_AsResult()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
         var orderId = Guid.NewGuid();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = orderId, CustomerName = "Alice" })
             .ThenCreateOne<OrderItem>(order => new OrderItem
             {
@@ -1016,9 +1061,9 @@ public sealed class PipelineFlowTests
     public async Task Result_WithModify_ThenResult()
     {
         var provider = new InMemoryServiceProvider();
-        var flow = new PipelineFlow();
+        var flow = new CommandPipelineFlow();
 
-        var builder = ((IStartPipeline)flow)
+        var builder = ((IStartCommandPipeline)flow)
             .CreateOne(new Order { Id = Guid.NewGuid(), CustomerName = "Draft" })
             .WithModify(o => o.CustomerName = "Final")
             .WithResultIfSucceed<string>(o => o.CustomerName);
@@ -1077,6 +1122,16 @@ public sealed class PipelineFlowTests
 
         public Task RemoveOneAsync<TModel>(TModel model, CancellationToken ct) where TModel : class
             => Task.CompletedTask;
+
+        public Task<List<TModel>> CreateManyAsync<TModel>(List<TModel> models, CancellationToken ct)
+            where TModel : class => Task.FromResult(models);
+
+        public Task<List<TModel>> GetManyByConditionAsync<TModel>(Expression<Func<TModel, bool>> filter,
+            CancellationToken ct) where TModel : class =>
+            Task.FromResult<List<TModel>>([]);
+
+        public Task RemoveManyAsync<TModel>(List<TModel> models, CancellationToken ct) where TModel : class =>
+            Task.CompletedTask;
 
         public Task SaveChangesAsync(CancellationToken ct)
             => throw new InvalidOperationException("DB error");

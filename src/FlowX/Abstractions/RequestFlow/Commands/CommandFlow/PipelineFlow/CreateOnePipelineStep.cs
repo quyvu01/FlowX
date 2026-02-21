@@ -1,29 +1,24 @@
-using System.Linq.Expressions;
 using FlowX.Errors;
 using FlowX.Extensions;
 using FlowX.Structs;
 
 namespace FlowX.Abstractions.RequestFlow.Commands.CommandFlow.PipelineFlow;
 
-internal sealed class UpdatePipelineStep<TModel, TPrev> : IPipelineStepEntry
+internal sealed class CreateOnePipelineStep<TModel, TPrev> : IPipelineStepEntry
     where TModel : class
 {
     public bool IsTransactionBoundary { get; set; }
-    public Expression<Func<TModel, bool>> Filter { get; set; }
-    public Func<TPrev, Expression<Func<TModel, bool>>> FilterFactory { get; set; }
-    public Error NullError { get; set; }
+    public Func<Task<TModel>> ModelFunc { get; set; }
+    public Func<TPrev, Task<TModel>> ModelFromPrevFunc { get; set; }
     public Func<TModel, Task<OneOf<None, Error>>> ConditionAsync { get; set; }
     public Func<TModel, Task> ModifyFunc { get; set; }
 
     public async Task<object> ExecuteAsync(IPipelineServiceProvider provider, object previousResult,
         CancellationToken ct)
     {
-        var filter = FilterFactory is not null
-            ? FilterFactory((TPrev)previousResult)
-            : Filter;
-
-        var model = await provider.GetFirstByConditionAsync(filter, ct);
-        if (model is null) throw NullError ?? (Exception)new NullReferenceException($"Entity {typeof(TModel).Name} not found");
+        var model = ModelFromPrevFunc is not null
+            ? await ModelFromPrevFunc((TPrev)previousResult)
+            : await ModelFunc();
 
         if (ConditionAsync is { } conditionAsync)
         {
@@ -34,6 +29,7 @@ internal sealed class UpdatePipelineStep<TModel, TPrev> : IPipelineStepEntry
         if (ModifyFunc is { } modifyFunc)
             await modifyFunc(model);
 
+        await provider.CreateOneAsync(model, ct);
         return model;
     }
 }

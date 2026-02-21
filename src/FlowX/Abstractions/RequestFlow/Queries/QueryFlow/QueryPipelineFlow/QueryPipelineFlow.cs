@@ -38,4 +38,12 @@ public class QueryPipelineFlow : IStartQueryPipeline
         StepEntries.Add(step);
         return new QueryPipelinePaginatedConfigurator<TModel, object>(this, step);
     }
+
+    public IQueryPipelineCountingStep<TModel> QueryCounting<TModel>(
+        Expression<Func<TModel, bool>> filter) where TModel : class
+    {
+        var step = new QueryCountingPipelineStep<TModel, object> { Filter = filter };
+        StepEntries.Add(step);
+        return new QueryPipelineCountingConfigurator<TModel, object>(this, step);
+    }
 }

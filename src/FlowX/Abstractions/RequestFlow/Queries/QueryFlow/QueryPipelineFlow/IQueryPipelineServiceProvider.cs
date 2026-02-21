@@ -22,4 +22,9 @@ public interface IQueryPipelineServiceProvider
         string sortedFields,
         int? skip, int? take,
         CancellationToken ct) where TModel : class;
+
+    Task<long> GetCountAsync<TModel>(
+        Expression<Func<TModel, bool>> filter,
+        Func<IQueryable<TModel>, IQueryable<TModel>> specialAction,
+        CancellationToken ct) where TModel : class;
 }

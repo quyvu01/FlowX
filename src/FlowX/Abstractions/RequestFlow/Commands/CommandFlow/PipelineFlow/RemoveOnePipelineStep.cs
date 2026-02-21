@@ -5,7 +5,7 @@ using FlowX.Structs;
 
 namespace FlowX.Abstractions.RequestFlow.Commands.CommandFlow.PipelineFlow;
 
-internal sealed class RemovePipelineStep<TModel, TPrev> : IPipelineStepEntry
+internal sealed class RemoveOnePipelineStep<TModel, TPrev> : IPipelineStepEntry
     where TModel : class
 {
     public bool IsTransactionBoundary { get; set; }

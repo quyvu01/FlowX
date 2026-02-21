@@ -1,30 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using FlowX.Errors;
 
 namespace FlowX.Abstractions.RequestFlow.Commands.CommandFlow.PipelineFlow;
 
-public interface IPipelineNextable<out TModel> where TModel : class
+public interface IPipelineNextable<out TPrev> : IPipelineContinuation<TPrev>
 {
-    IPipelineAfterDone<TModel> Done();
-
-    IPipelineCreateStep<TNext> ThenCreateOne<TNext>(
-        Func<TModel, TNext> factory) where TNext : class;
-
-    IPipelineCreateStep<TNext> ThenCreateOne<TNext>(
-        Func<TModel, Task<TNext>> factoryAsync) where TNext : class;
-
-    IPipelineUpdateStep<TNext> ThenUpdateOne<TNext>(
-        Func<TModel, Expression<Func<TNext, bool>>> filterFactory) where TNext : class;
-
-    IPipelineRemoveStep<TNext> ThenRemoveOne<TNext>(
-        Func<TModel, Expression<Func<TNext, bool>>> filterFactory) where TNext : class;
-
+    IPipelineAfterDone<TPrev> Done();
     IPipelineTerminal WithErrorIfSaveChange([NotNull] Error error);
 
     IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>(
-        [NotNull] Func<TModel, TResult> resultFunc);
+        [NotNull] Func<TPrev, TResult> resultFunc);
 
     IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>(
-        [NotNull] Func<TModel, Task<TResult>> resultFuncAsync);
+        [NotNull] Func<TPrev, Task<TResult>> resultFuncAsync);
 }

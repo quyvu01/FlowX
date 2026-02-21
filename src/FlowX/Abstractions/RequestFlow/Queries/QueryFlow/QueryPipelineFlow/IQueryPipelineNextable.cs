@@ -28,6 +28,13 @@ public interface IQueryPipelineNextable<TPrev>
         Func<TPrev, IQueryable<TNext>, IQueryable<TNext>> queryableFactory,
         int? skip, int? take, string sortedFields = null) where TNext : class;
 
+    // Counting transitions
+    IQueryPipelineCountingStep<TNext> ThenQueryCounting<TNext>(
+        Func<TPrev, Expression<Func<TNext, bool>>> filterFactory) where TNext : class;
+
+    IQueryPipelineCountingStep<TNext> ThenQueryCountingFromQueryable<TNext>(
+        Func<TPrev, IQueryable<TNext>, IQueryable<TNext>> queryableFactory) where TNext : class;
+
     // Terminal
     IQueryPipelineResultTerminal<TResult> WithResult<TResult>(
         [NotNull] Func<TPrev, TResult> resultFunc);

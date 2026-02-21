@@ -100,6 +100,27 @@ internal sealed class QueryPipelineOneConfigurator<TModel, TPrev> :
         return new QueryPipelinePaginatedConfigurator<TNext, TModel>(_pipeline, step);
     }
 
+    // ===== IQueryPipelineNextable<TModel> — Counting =====
+
+    IQueryPipelineCountingStep<TNext> IQueryPipelineNextable<TModel>.ThenQueryCounting<TNext>(
+        Func<TModel, Expression<Func<TNext, bool>>> filterFactory)
+    {
+        var step = new QueryCountingPipelineStep<TNext, TModel> { FilterFactory = filterFactory };
+        _pipeline.StepEntries.Add(step);
+        return new QueryPipelineCountingConfigurator<TNext, TModel>(_pipeline, step);
+    }
+
+    IQueryPipelineCountingStep<TNext> IQueryPipelineNextable<TModel>.ThenQueryCountingFromQueryable<TNext>(
+        Func<TModel, IQueryable<TNext>, IQueryable<TNext>> queryableFactory)
+    {
+        var step = new QueryCountingPipelineStep<TNext, TModel>
+        {
+            SpecialActionFactory = prev => q => queryableFactory(prev, q)
+        };
+        _pipeline.StepEntries.Add(step);
+        return new QueryPipelineCountingConfigurator<TNext, TModel>(_pipeline, step);
+    }
+
     // ===== IQueryPipelineNextable<TModel> — Terminal =====
 
     IQueryPipelineResultTerminal<TResult> IQueryPipelineNextable<TModel>.WithResult<TResult>(

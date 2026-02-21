@@ -13,11 +13,9 @@ public class CommandOneResultFlow<TModel, TResult> :
     IUpdateOneConditionResult<TModel, TResult>,
     IUpdateOneAfterConditionResult<TModel, TResult>,
     IRemoveOneConditionResult<TModel, TResult>,
-    IUpdateOneModifyResult<TModel, TResult>,
     ICommandOneErrorDetailResult<TModel, TResult>,
     ISaveChangesOneErrorDetailResult<TModel, TResult>,
     IAfterSaveChangeResult<TModel, TResult>,
-    ISaveChangesOneSucceed<TModel, TResult>,
     ICommandOneFlowBuilderResult<TModel, TResult>
     where TModel : class
 {

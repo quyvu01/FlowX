@@ -13,4 +13,7 @@ public interface IStartQueryPipeline
     IQueryPipelinePaginatedStep<TModel> QueryPaginated<TModel>(
         Expression<Func<TModel, bool>> filter,
         int? skip, int? take, string sortedFields = null) where TModel : class;
+
+    IQueryPipelineCountingStep<TModel> QueryCounting<TModel>(
+        Expression<Func<TModel, bool>> filter) where TModel : class;
 }

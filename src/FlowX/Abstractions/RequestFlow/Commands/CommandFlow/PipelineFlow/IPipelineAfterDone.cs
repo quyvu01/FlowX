@@ -1,28 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using FlowX.Errors;
 
 namespace FlowX.Abstractions.RequestFlow.Commands.CommandFlow.PipelineFlow;
 
-public interface IPipelineAfterDone<out TPrev> where TPrev : class
+public interface IPipelineAfterDone<out TPrev>
 {
-    IPipelineCreateStep<TModel> ThenCreateOne<TModel>(
-        Func<TPrev, TModel> factory) where TModel : class;
+    IPipelineContinuationOrTerminal<TPrev> WithErrorIfSaveChange([NotNull] Error error);
 
-    IPipelineCreateStep<TModel> ThenCreateOne<TModel>(
-        Func<TPrev, Task<TModel>> factoryAsync) where TModel : class;
+    IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>([NotNull] Func<TPrev, TResult> resultFunc);
 
-    IPipelineUpdateStep<TModel> ThenUpdateOne<TModel>(
-        Func<TPrev, Expression<Func<TModel, bool>>> filterFactory) where TModel : class;
-
-    IPipelineRemoveStep<TModel> ThenRemoveOne<TModel>(
-        Func<TPrev, Expression<Func<TModel, bool>>> filterFactory) where TModel : class;
-
-    IPipelineTerminal WithErrorIfSaveChange([NotNull] Error error);
-
-    IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>(
-        [NotNull] Func<TPrev, TResult> resultFunc);
-
-    IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>(
-        [NotNull] Func<TPrev, Task<TResult>> resultFuncAsync);
+    IPipelineResultTerminal<TResult> WithResultIfSucceed<TResult>([NotNull] Func<TPrev, Task<TResult>> resultFuncAsync);
 }

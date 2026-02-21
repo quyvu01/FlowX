@@ -51,4 +51,14 @@ internal sealed class EfQueryPipelineServiceProvider(IUnitOfWork unitOfWork) : I
 
         return new QueryPipelinePage<TModel> { Items = items, TotalRecord = totalRecord };
     }
+
+    public async Task<long> GetCountAsync<TModel>(
+        Expression<Func<TModel, bool>> filter,
+        Func<IQueryable<TModel>, IQueryable<TModel>> specialAction,
+        CancellationToken ct) where TModel : class
+    {
+        var repository = unitOfWork.RepositoryOf<TModel>();
+        return await repository.CountByConditionAsync(filter,
+            q => (specialAction?.Invoke(q) ?? q).AsNoTracking(), ct);
+    }
 }

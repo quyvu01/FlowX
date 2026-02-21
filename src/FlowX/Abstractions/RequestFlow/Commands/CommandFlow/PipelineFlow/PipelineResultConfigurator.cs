@@ -5,36 +5,36 @@ namespace FlowX.Abstractions.RequestFlow.Commands.CommandFlow.PipelineFlow;
 internal sealed class PipelineResultConfigurator<TResult> :
     IPipelineResultTerminal<TResult>
 {
-    private readonly PipelineFlow _pipeline;
+    private readonly CommandPipelineFlow _commandPipeline;
 
-    internal PipelineResultConfigurator(PipelineFlow pipeline)
+    internal PipelineResultConfigurator(CommandPipelineFlow commandPipeline)
     {
-        _pipeline = pipeline;
+        _commandPipeline = commandPipeline;
     }
 
     // ===== IPipelineFlowBuilder =====
 
-    IReadOnlyList<IPipelineStepEntry> IPipelineFlowBuilder.Steps => _pipeline.StepEntries;
-    Error IPipelineFlowBuilder.SaveChangesError => _pipeline.SaveChangesErrorValue;
-    Func<Task> IPipelineFlowBuilder.BeforeExecutionFunc => _pipeline.BeforeExecutionFuncValue;
-    Func<Task> IPipelineFlowBuilder.AfterExecutionFunc => _pipeline.AfterExecutionFuncValue;
+    IReadOnlyList<IPipelineStepEntry> IPipelineFlowBuilder.Steps => _commandPipeline.StepEntries;
+    Error IPipelineFlowBuilder.SaveChangesError => _commandPipeline.SaveChangesErrorValue;
+    Func<Task> IPipelineFlowBuilder.BeforeExecutionFunc => _commandPipeline.BeforeExecutionFuncValue;
+    Func<Task> IPipelineFlowBuilder.AfterExecutionFunc => _commandPipeline.AfterExecutionFuncValue;
 
     // ===== IPipelineResultFlowBuilder<TResult> =====
 
     Func<object, Task<TResult>> IPipelineResultFlowBuilder<TResult>.ResultFuncAsync =>
-        (Func<object, Task<TResult>>)_pipeline.ResultFuncAsyncValue;
+        (Func<object, Task<TResult>>)_commandPipeline.ResultFuncAsyncValue;
 
     // ===== IPipelineResultTerminal<TResult> =====
 
     IPipelineResultTerminal<TResult> IPipelineResultTerminal<TResult>.WithErrorIfSaveChange(Error error)
     {
-        _pipeline.SaveChangesErrorValue = error;
+        _commandPipeline.SaveChangesErrorValue = error;
         return this;
     }
 
     IPipelineResultTerminal<TResult> IPipelineResultTerminal<TResult>.WithBeforeExecution(Action action)
     {
-        _pipeline.BeforeExecutionFuncValue = () =>
+        _commandPipeline.BeforeExecutionFuncValue = () =>
         {
             action();
             return Task.CompletedTask;
@@ -44,13 +44,13 @@ internal sealed class PipelineResultConfigurator<TResult> :
 
     IPipelineResultTerminal<TResult> IPipelineResultTerminal<TResult>.WithBeforeExecution(Func<Task> actionAsync)
     {
-        _pipeline.BeforeExecutionFuncValue = actionAsync;
+        _commandPipeline.BeforeExecutionFuncValue = actionAsync;
         return this;
     }
 
     IPipelineResultFlowBuilder<TResult> IPipelineResultTerminal<TResult>.WithAfterExecution(Action action)
     {
-        _pipeline.AfterExecutionFuncValue = () =>
+        _commandPipeline.AfterExecutionFuncValue = () =>
         {
             action();
             return Task.CompletedTask;
@@ -60,7 +60,7 @@ internal sealed class PipelineResultConfigurator<TResult> :
 
     IPipelineResultFlowBuilder<TResult> IPipelineResultTerminal<TResult>.WithAfterExecution(Func<Task> actionAsync)
     {
-        _pipeline.AfterExecutionFuncValue = actionAsync;
+        _commandPipeline.AfterExecutionFuncValue = actionAsync;
         return this;
     }
 }

@@ -116,6 +116,24 @@ public sealed class QueryPipelineFlowTests
                 TotalRecord = totalRecord
             });
         }
+
+        public Task<long> GetCountAsync<TModel>(
+            Expression<Func<TModel, bool>> filter,
+            Func<IQueryable<TModel>, IQueryable<TModel>> specialAction,
+            CancellationToken ct) where TModel : class
+        {
+            Operations.Add($"GetCount:{typeof(TModel).Name}");
+            if (!_store.TryGetValue(typeof(TModel), out var list))
+                return Task.FromResult(0L);
+
+            var queryable = list.Cast<TModel>().AsQueryable();
+            if (filter is not null)
+                queryable = queryable.Where(filter);
+            if (specialAction is not null)
+                queryable = specialAction(queryable);
+
+            return Task.FromResult(queryable.LongCount());
+        }
     }
 
     // === Helper: execute query pipeline ===
@@ -705,7 +723,17 @@ public sealed class QueryPipelineFlowTests
         Assert.Contains("ThenQueryManyFromQueryable", methods);
         Assert.Contains("ThenQueryPaginated", methods);
         Assert.Contains("ThenQueryPaginatedFromQueryable", methods);
+        Assert.Contains("ThenQueryCounting", methods);
+        Assert.Contains("ThenQueryCountingFromQueryable", methods);
         Assert.Contains("WithResult", methods);
+    }
+
+    [Fact]
+    public void IQueryPipelineCountingStep_ShouldInherit_IQueryPipelineNextable()
+    {
+        var interfaces = typeof(IQueryPipelineCountingStep<>).GetInterfaces();
+        Assert.Contains(interfaces, i =>
+            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryPipelineNextable<>));
     }
 
     [Fact]
@@ -727,6 +755,194 @@ public sealed class QueryPipelineFlowTests
         var interfaces = typeof(IQueryPipelinePaginatedStep<>).GetInterfaces();
         Assert.Contains(interfaces, i =>
             i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryPipelineNextable<>));
+    }
+
+    #endregion
+
+    #region Single Step — QueryCounting
+
+    [Fact]
+    public async Task QueryCounting_ReturnCount()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "A", Quantity = 1 });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "B", Quantity = 2 });
+        provider.Seed(new OrderItem { OrderId = Guid.NewGuid(), Product = "C", Quantity = 3 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryCounting<OrderItem>(i => i.OrderId == orderId)
+            .WithResult<long>(count => count);
+
+        var result = await ExecutePipeline(builder, provider);
+
+        Assert.Equal(2, result);
+        Assert.Equal(["GetCount:OrderItem"], provider.Operations);
+    }
+
+    [Fact]
+    public async Task QueryCounting_WithSpecialAction()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { Product = "A", Quantity = 1 });
+        provider.Seed(new OrderItem { Product = "B", Quantity = 5 });
+        provider.Seed(new OrderItem { Product = "C", Quantity = 3 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryCounting<OrderItem>(_ => true)
+            .WithSpecialAction(q => q.Where(i => i.Quantity >= 3))
+            .WithResult<long>(count => count);
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(2, result);
+    }
+
+    [Fact]
+    public async Task QueryCounting_ZeroResults()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryCounting<OrderItem>(i => i.Product == "NonExistent")
+            .WithResult<long>(count => count);
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(0, result);
+    }
+
+    #endregion
+
+    #region Multi-Step — Counting Transitions
+
+    [Fact]
+    public async Task QueryOne_ThenQueryCounting()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new Order { Id = orderId, CustomerName = "Alice" });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "A", Quantity = 1 });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "B", Quantity = 2 });
+        provider.Seed(new OrderItem { OrderId = Guid.NewGuid(), Product = "C", Quantity = 3 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryOne<Order>(o => o.Id == orderId)
+            .WithErrorIfNull(new Error("Not found"))
+            .ThenQueryCounting<OrderItem>(order => item => item.OrderId == order.Id)
+            .WithResult<long>(count => count);
+
+        var result = await ExecutePipeline(builder, provider);
+
+        Assert.Equal(2, result);
+        Assert.Equal(["GetOne:Order", "GetCount:OrderItem"], provider.Operations);
+    }
+
+    [Fact]
+    public async Task QueryMany_ThenQueryCounting()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "A" });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "B" });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 10 });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 20 });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 30 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryMany<OrderItem>(i => i.OrderId == orderId)
+            .ThenQueryCounting<Inventory>(_ => inv => inv.Stock > 15)
+            .WithResult<long>(count => count);
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(2, result); // Stock 20, 30
+    }
+
+    [Fact]
+    public async Task QueryCounting_ThenQueryOne()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "A" });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "B" });
+        provider.Seed(new Order { Id = orderId, CustomerName = "Alice" });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryCounting<OrderItem>(i => i.OrderId == orderId)
+            .ThenQueryOne<Order>(count => o => o.Id == orderId)
+            .WithErrorIfNull(new Error("Not found"))
+            .WithResult<string>(order => $"{order.CustomerName}");
+
+        var result = await ExecutePipeline(builder, provider);
+
+        Assert.Equal("Alice", result);
+        Assert.Equal(["GetCount:OrderItem", "GetOne:Order"], provider.Operations);
+    }
+
+    [Fact]
+    public async Task QueryCounting_ThenQueryMany()
+    {
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { Product = "A", Quantity = 1 });
+        provider.Seed(new OrderItem { Product = "B", Quantity = 2 });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 10 });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 20 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryCounting<OrderItem>(_ => true)
+            .ThenQueryMany<Inventory>(_ => inv => true)
+            .WithResult<int>(inventories => inventories.Sum(i => i.Stock));
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(30, result);
+    }
+
+    [Fact]
+    public async Task QueryOne_ThenQueryCountingFromQueryable()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new Order { Id = orderId, CustomerName = "Alice" });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "A", Quantity = 5 });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "B", Quantity = 1 });
+        provider.Seed(new OrderItem { OrderId = Guid.NewGuid(), Product = "C", Quantity = 10 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryOne<Order>(o => o.Id == orderId)
+            .WithErrorIfNull(new Error("Not found"))
+            .ThenQueryCountingFromQueryable<OrderItem>((order, q) =>
+                q.Where(i => i.OrderId == order.Id && i.Quantity > 2))
+            .WithResult<long>(count => count);
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(1, result); // Only Product "A" with Quantity=5
+    }
+
+    [Fact]
+    public async Task QueryPaginated_ThenQueryCounting()
+    {
+        var orderId = Guid.NewGuid();
+        var provider = new InMemoryQueryServiceProvider();
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "A", Quantity = 1 });
+        provider.Seed(new OrderItem { OrderId = orderId, Product = "B", Quantity = 2 });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 10 });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 20 });
+        provider.Seed(new Inventory { ProductId = Guid.NewGuid(), Stock = 30 });
+
+        var flow = new QueryPipelineFlow();
+        var builder = ((IStartQueryPipeline)flow)
+            .QueryPaginated<OrderItem>(i => i.OrderId == orderId, skip: 0, take: 10)
+            .ThenQueryCounting<Inventory>(page => inv => inv.Stock > 15)
+            .WithResult<long>(count => count);
+
+        var result = await ExecutePipeline(builder, provider);
+        Assert.Equal(2, result);
     }
 
     #endregion

@@ -7,13 +7,21 @@ using Service1.Models;
 
 namespace Service1.Handlers;
 
-public sealed class CreateUserHandler : EfPipelineVoidHandler<CreateUserCommand>
+public sealed class CreateUserHandler : EfCommandPipelineHandler<CreateUserCommand, string>
 {
-    protected override IPipelineFlowBuilder BuildPipeline(IStartPipeline fromFlow,
+    // protected override IPipelineFlowBuilder BuildPipeline(IStartCommandPipeline fromFlow,
+    //     IRequestContext<CreateUserCommand> commandContext)
+    //     => fromFlow
+    //         .CreateOne(new User { Id = Guid.NewGuid(), Name = "Abcd" })
+    //         .ThenCreateOne(_ => new User { Id = Guid.NewGuid(), Name = "Xyz" })
+    //         .Done()
+    //         .WithErrorIfSaveChange(new Error("Some error"));
+    protected override IPipelineResultFlowBuilder<string> BuildPipeline(IStartCommandPipeline fromFlow,
         IRequestContext<CreateUserCommand> commandContext)
-        => fromFlow
-            .CreateOne(new User { Id = Guid.NewGuid(), Name = "Abcd" })
-            .ThenCreateOne(_ => new User { Id = Guid.NewGuid(), Name = "Xyz" })
-            .Done()
-            .WithErrorIfSaveChange(new Error());
+    => fromFlow
+        .CreateOne(new User { Id = Guid.NewGuid(), Name = "Abcd" })
+        .ThenCreateOne(_ => new User { Id = Guid.NewGuid(), Name = "Xyz" })
+        .Done()
+        .WithResultIfSucceed(_ => "")
+        .WithErrorIfSaveChange(new Error("Some error"));
 }
