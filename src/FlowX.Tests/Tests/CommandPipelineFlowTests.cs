@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
-using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.PipelineFlow;
+using FlowX.Abstractions.RequestFlow.Commands.PipelineFlow;
 using FlowX.Errors;
-using FlowX.Extensions;
 using FlowX.Structs;
 using Xunit;
 

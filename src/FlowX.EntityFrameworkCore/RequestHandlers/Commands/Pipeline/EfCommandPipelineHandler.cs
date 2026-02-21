@@ -1,6 +1,6 @@
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Commands;
-using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.PipelineFlow;
+using FlowX.Abstractions.RequestFlow.Commands.PipelineFlow;
 using FlowX.EntityFrameworkCore.SharedStates;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.Pipeline;

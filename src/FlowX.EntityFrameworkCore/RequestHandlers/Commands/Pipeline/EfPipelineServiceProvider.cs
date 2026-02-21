@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using FlowX.Abstractions.RequestFlow.Commands.CommandFlow.PipelineFlow;
+using FlowX.Abstractions.RequestFlow.Commands.PipelineFlow;
 using FlowX.EntityFrameworkCore.Abstractions;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Commands.Pipeline;
