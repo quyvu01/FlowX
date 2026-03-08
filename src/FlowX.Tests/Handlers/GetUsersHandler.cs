@@ -7,12 +7,12 @@ using FlowX.Tests.Responses;
 
 namespace FlowX.Tests.Handlers;
 
-public sealed class GetUsersHandler : EfQueryCollectionHandler<User, GetUsersQuery, UserResponse>
+public sealed class GetUsersHandler : EfQueryCollectionHandler<GetUsersQuery, UserResponse>
 {
-    protected override IQueryListFlowBuilder<User, UserResponse> BuildQueryFlow(
-        IQueryListFilter<User, UserResponse> fromFlow, IRequestContext<GetUsersQuery> queryContext)
+    protected override IQueryListFlowBuilder<UserResponse> BuildQueryFlow(
+        IQueryListFilter<UserResponse> fromFlow, IRequestContext<GetUsersQuery> queryContext)
         => fromFlow
-            .WithFilter(a => queryContext.Request.Ids.Contains(a.Id))
+            .WithFilter<User>(a => queryContext.Request.Ids.Contains(a.Id))
             .WithSpecialAction(a => a.Select(x => new UserResponse { Id = x.Id, Email = x.Email, Name = x.Name }))
-            .WithDefaultSortFields(Asc(x => x.Name));
+            .WithDefaultSortFields(Asc<User>(x => x.Name));
 }

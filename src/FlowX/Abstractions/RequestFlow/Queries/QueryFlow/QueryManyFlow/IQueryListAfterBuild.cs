@@ -2,9 +2,8 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 
-public interface IQueryListAfterBuild<TModel, TResponse> : IQueryListFlowBuilder<TModel, TResponse>
-    where TModel : class
+public interface IQueryListAfterBuild<TResponse> : IQueryListFlowBuilder<TResponse>
 {
-    IQueryListFlowBuilder<TModel, TResponse> WithAfterExecution([NotNull] Action action);
-    IQueryListFlowBuilder<TModel, TResponse> WithAfterExecution([NotNull] Func<Task> actionAsync);
+    IQueryListFlowBuilder<TResponse> WithAfterExecution([NotNull] Action action);
+    IQueryListFlowBuilder<TResponse> WithAfterExecution([NotNull] Func<Task> actionAsync);
 }

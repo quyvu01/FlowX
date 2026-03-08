@@ -8,12 +8,12 @@ using Service2.Models;
 namespace Service2.Handlers;
 
 public sealed class GetProvincesHandler
-    : EfQueryPaginationHandler<Province, GetProvincesQuery, ProvinceResponse>
+    : EfQueryPaginationHandler<GetProvincesQuery, ProvinceResponse>
 {
-    protected override IQueryListFlowBuilder<Province, ProvinceResponse> BuildQueryFlow(
-        IQueryListFilter<Province, ProvinceResponse> fromFlow, IRequestContext<GetProvincesQuery> queryContext)
+    protected override IQueryListFlowBuilder<ProvinceResponse> BuildQueryFlow(
+        IQueryListFilter<ProvinceResponse> fromFlow, IRequestContext<GetProvincesQuery> queryContext)
         => fromFlow
-            .WithFilter(null)
+            .WithFilter<Province>(null)
             .WithSpecialAction(a => a.Select(x => new ProvinceResponse { Id = x.Id, Name = x.Name }))
-            .WithDefaultSortFields(Asc(a => a.Name).ThenDescBy(x => x.Id));
+            .WithDefaultSortFields(Asc<Province>(a => a.Name).ThenDescBy(x => x.Id));
 }

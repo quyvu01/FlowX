@@ -8,12 +8,12 @@ using FlowX.Tests.Responses;
 
 namespace FlowX.Tests.Handlers;
 
-public sealed class GetUserHandler : EfQueryOneHandler<User, GetUserQuery, UserResponse>
+public sealed class GetUserHandler : EfQueryOneHandler<GetUserQuery, UserResponse>
 {
-    protected override IQueryOneFlowBuilder<User, UserResponse> BuildQueryFlow(
-        IQueryOneFilter<User, UserResponse> fromFlow, IRequestContext<GetUserQuery> queryContext)
+    protected override IQueryOneFlowBuilder<UserResponse> BuildQueryFlow(
+        IQueryOneFilter<UserResponse> fromFlow, IRequestContext<GetUserQuery> queryContext)
         => fromFlow
-            .WithFilter(a => a.Id == queryContext.Request.Id)
+            .WithFilter<User>(a => a.Id == queryContext.Request.Id)
             .WithSpecialAction(a => a)
             .WithMap(u => new UserResponse { Id = u.Id, Email = u.Email, Name = u.Name })
             .WithErrorIfNull(new Error());

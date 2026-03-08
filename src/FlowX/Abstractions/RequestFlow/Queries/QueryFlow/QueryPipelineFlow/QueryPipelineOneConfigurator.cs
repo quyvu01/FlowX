@@ -125,7 +125,7 @@ internal sealed class QueryPipelineOneConfigurator<TModel, TPrev> :
 
     IQueryPipelineResultTerminal<TResult> IQueryPipelineNextable<TModel>.WithResult<TResult>(
         Func<TModel, TResult> resultFunc)
-        => ((IQueryPipelineNextable<TModel>)this).WithResult<TResult>(
+        => ((IQueryPipelineNextable<TModel>)this).WithResult(
             model => Task.FromResult(resultFunc(model)));
 
     IQueryPipelineResultTerminal<TResult> IQueryPipelineNextable<TModel>.WithResult<TResult>(

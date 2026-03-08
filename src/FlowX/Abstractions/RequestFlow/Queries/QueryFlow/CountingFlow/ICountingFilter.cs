@@ -1,8 +1,9 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.CountingFlow;
 
-public interface ICountingFilter<TModel> where TModel : class
+public interface ICountingFilter
 {
-    ICountingAfterFilter<TModel> WithFilter(Expression<Func<TModel, bool>> filter);
+    ICountingAfterFilter<TModel> WithFilter<TModel>(
+        Expression<Func<TModel, bool>> filter) where TModel : class;
 }

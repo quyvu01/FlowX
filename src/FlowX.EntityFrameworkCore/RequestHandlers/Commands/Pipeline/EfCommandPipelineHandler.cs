@@ -38,8 +38,7 @@ public abstract class EfCommandPipelineHandler<TCommand, TResult>
             throw saveChangesError;
         }
 
-        if (builder.AfterExecutionFunc is { } afterFunc)
-            await afterFunc.Invoke();
+        if (builder.AfterExecutionFunc is { } afterFunc) await afterFunc.Invoke();
 
         return await builder.ResultFuncAsync(previousResult);
     }

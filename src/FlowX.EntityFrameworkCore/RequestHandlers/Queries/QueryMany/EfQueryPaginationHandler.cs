@@ -1,75 +1,35 @@
-using System.Diagnostics;
 using FlowX.Abstractions;
 using FlowX.Abstractions.RequestFlow.Queries;
-using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 using FlowX.EntityFrameworkCore.SharedStates;
-using FlowX.Extensions;
 using FlowX.Responses;
-using Microsoft.EntityFrameworkCore;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryMany;
 
-public abstract class EfQueryPaginationHandler<TModel, TQuery, TResponse>
-    : EfQueryManyBased<TModel, TQuery, TResponse>, IQueryHandler<TQuery, PaginationResponse<TResponse>>
-    where TModel : class
+public abstract class EfQueryPaginationHandler<TQuery, TResponse>
+    : EfQueryManyBased<TQuery, TResponse>, IQueryHandler<TQuery, PaginationResponse<TResponse>>
     where TQuery : GetManyQuery, IQueryPaged<TResponse>
     where TResponse : class
 {
     public virtual async Task<PaginationResponse<TResponse>> HandleAsync(IRequestContext<TQuery> requestContext)
     {
         var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
-        var repository = unitOfWork.RepositoryOf<TModel>();
-        var buildResult = BuildQueryFlow(new QueryManyFlow<TModel, TResponse>(), requestContext);
+        var provider = new EfQueryFlowServiceProvider(unitOfWork);
+        var builder = BuildQueryFlow(new QueryListFlowStart<TResponse>(), requestContext);
 
-        if (buildResult.BeforeExecutionFunc is { } beforeFunc)
+        if (builder.BeforeExecutionFunc is { } beforeFunc)
             await beforeFunc.Invoke();
 
-        PaginationResponse<TResponse> result;
-        switch (buildResult.QuerySpecialActionType)
-        {
-            case QuerySpecialActionType.ToModel:
-            {
-                var toModelSrcQueryable = repository
-                    .GetQueryable(buildResult.Filter)
-                    .AsNoTracking();
-                var toModelQueryable = toModelSrcQueryable
-                    .OrderDynamicOrDefault(requestContext.Request.SortedFields,
-                        buildResult.ExpressionOrder.ExpressionDetails);
-                var toModelFinalQueryable = buildResult.SpecialActionToModel.Invoke(toModelQueryable);
-                var toModelResponse = await toModelFinalQueryable
-                    .Offset(requestContext.Request.Skip())
-                    .Limit(requestContext.Request.Take())
-                    .ToListAsync(requestContext.CancellationToken);
-                var toModelTotalRecord = await toModelFinalQueryable.LongCountAsync(requestContext.CancellationToken);
-                var itemsResponses = toModelResponse.Select(a => buildResult.MapFunc.Invoke(a)).ToList();
-                result = new PaginationResponse<TResponse>(itemsResponses, toModelTotalRecord);
-                break;
-            }
-            case QuerySpecialActionType.ToTarget:
-                var srcQueryable = repository
-                    .GetQueryable(buildResult.Filter)
-                    .AsNoTracking();
+        var (items, totalCount) = await builder.ExecutePaginationAsync(
+            provider,
+            requestContext.Request.SortedFields,
+            requestContext.Request.Skip(),
+            requestContext.Request.Take(),
+            requestContext.CancellationToken);
 
-                var queryable = srcQueryable
-                    .OrderDynamicOrDefault(requestContext.Request.SortedFields,
-                        buildResult.ExpressionOrder.ExpressionDetails);
-                var finalQueryable = buildResult.SpecialActionToResponse.Invoke(queryable);
-                var response = await finalQueryable
-                    .Offset(requestContext.Request.Skip())
-                    .Limit(requestContext.Request.Take())
-                    .ToListAsync(requestContext.CancellationToken);
-                var totalRecord = await finalQueryable.LongCountAsync(requestContext.CancellationToken);
-                result = new PaginationResponse<TResponse>(response, totalRecord);
-                break;
-            case QuerySpecialActionType.UnKnown:
-            default:
-                throw new UnreachableException("Query special type could not be unknown!");
-        }
-
-        if (buildResult.AfterExecutionFunc is { } afterFunc)
+        if (builder.AfterExecutionFunc is { } afterFunc)
             await afterFunc.Invoke();
 
-        return result;
+        return new PaginationResponse<TResponse>(items, totalCount);
     }
 }

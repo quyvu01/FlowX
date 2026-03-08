@@ -6,21 +6,19 @@ using FlowX.Responses;
 
 namespace FlowX.EntityFrameworkCore.RequestHandlers.Queries.QueryCounting;
 
-public abstract class EfQueryCountingHandler<TModel, TQuery> :
+public abstract class EfQueryCountingHandler<TQuery> :
     IQueryHandler<TQuery, CountingResponse>
-    where TModel : class
     where TQuery : class, IQueryCounting
 {
-    protected abstract ICountingFlowBuilder<TModel> BuildQueryFlow(
-        ICountingFilter<TModel> fromFlow, IRequestContext<TQuery> queryContext);
+    protected abstract ICountingFlowBuilder BuildQueryFlow(
+        ICountingFilter fromFlow, IRequestContext<TQuery> queryContext);
 
     public virtual async Task<CountingResponse> HandleAsync(IRequestContext<TQuery> requestContext)
     {
         var unitOfWork = EfCoreSharedStates.GetUnitOfWork();
-        var repository = unitOfWork.RepositoryOf<TModel>();
-        var flowBuilder = BuildQueryFlow(new CountingFlow<TModel>(), requestContext);
-        var count = await repository
-            .CountByConditionAsync(flowBuilder.Filter, null, requestContext.CancellationToken);
+        var provider = new EfQueryFlowServiceProvider(unitOfWork);
+        var flowBuilder = BuildQueryFlow(new CountingFlowStart(), requestContext);
+        var count = await flowBuilder.ExecuteCountAsync(provider, requestContext.CancellationToken);
         return new CountingResponse { Count = count };
     }
 }

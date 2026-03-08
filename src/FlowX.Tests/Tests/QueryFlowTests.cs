@@ -1,4 +1,3 @@
-using FlowX.Abstractions.RequestFlow.Queries.QueryFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.CountingFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 using FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryOneFlow;
@@ -22,61 +21,48 @@ public sealed class QueryFlowTests
         public string DisplayName { get; set; }
     }
 
-    #region QueryOne - Chainable Filters
+    #region QueryOne - Flow Building
 
     [Fact]
-    public void QueryOne_SingleFilter_ShouldSetFilter()
+    public void QueryOne_SingleFilter_ShouldBuild()
     {
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        var builder = ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.Id == "1")
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.Id == "1")
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithErrorIfNull(new Error("Not found"));
 
-        var result = (IQueryOneFlowBuilder<TestModel, TestResponse>)builder;
-        Assert.NotNull(result.Filter);
+        Assert.NotNull(builder.NullError);
     }
 
     [Fact]
-    public void QueryOne_ChainedFilters_ShouldComposeWithAnd()
+    public void QueryOne_ChainedFilters_ShouldBuild()
     {
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        var builder = ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithFilter(x => x.Age > 18)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithErrorIfNull(new Error("Not found"));
 
-        var result = (IQueryOneFlowBuilder<TestModel, TestResponse>)builder;
-        Assert.NotNull(result.Filter);
-
-        // Compile and test the composed filter
-        var compiledFilter = result.Filter.Compile();
-        Assert.True(compiledFilter(new TestModel { IsActive = true, Age = 25 }));
-        Assert.False(compiledFilter(new TestModel { IsActive = false, Age = 25 }));
-        Assert.False(compiledFilter(new TestModel { IsActive = true, Age = 10 }));
-        Assert.False(compiledFilter(new TestModel { IsActive = false, Age = 10 }));
+        Assert.NotNull(builder.NullError);
     }
 
     [Fact]
-    public void QueryOne_ThreeChainedFilters_ShouldComposeAll()
+    public void QueryOne_ThreeChainedFilters_ShouldBuild()
     {
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        var builder = ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithFilter(x => x.Age > 18)
             .WithFilter(x => x.Name != null)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithErrorIfNull(new Error("Not found"));
 
-        var result = (IQueryOneFlowBuilder<TestModel, TestResponse>)builder;
-        var compiledFilter = result.Filter.Compile();
-
-        Assert.True(compiledFilter(new TestModel { IsActive = true, Age = 25, Name = "John" }));
-        Assert.False(compiledFilter(new TestModel { IsActive = true, Age = 25, Name = null }));
+        Assert.NotNull(builder.NullError);
     }
 
     #endregion
@@ -86,15 +72,14 @@ public sealed class QueryFlowTests
     [Fact]
     public void QueryOne_WithBeforeExecution_ShouldSet()
     {
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.Id == "1")
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.Id == "1")
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithBeforeExecution(() => { })
             .WithErrorIfNull(new Error("Not found"));
 
-        var builder = (IQueryOneFlowBuilder<TestModel, TestResponse>)flow;
         Assert.NotNull(builder.BeforeExecutionFunc);
     }
 
@@ -102,15 +87,14 @@ public sealed class QueryFlowTests
     public async Task QueryOne_WithBeforeExecution_ShouldInvoke()
     {
         var called = false;
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.Id == "1")
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.Id == "1")
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithBeforeExecution(() => { called = true; })
             .WithErrorIfNull(new Error("Not found"));
 
-        var builder = (IQueryOneFlowBuilder<TestModel, TestResponse>)flow;
         await builder.BeforeExecutionFunc();
         Assert.True(called);
     }
@@ -119,10 +103,10 @@ public sealed class QueryFlowTests
     public async Task QueryOne_WithBeforeExecutionAsync_ShouldInvoke()
     {
         var called = false;
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.Id == "1")
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.Id == "1")
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithBeforeExecution(async () =>
             {
@@ -131,7 +115,6 @@ public sealed class QueryFlowTests
             })
             .WithErrorIfNull(new Error("Not found"));
 
-        var builder = (IQueryOneFlowBuilder<TestModel, TestResponse>)flow;
         await builder.BeforeExecutionFunc();
         Assert.True(called);
     }
@@ -139,15 +122,14 @@ public sealed class QueryFlowTests
     [Fact]
     public void QueryOne_WithAfterExecution_ShouldSet()
     {
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.Id == "1")
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.Id == "1")
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithErrorIfNull(new Error("Not found"))
             .WithAfterExecution(_ => { });
 
-        var builder = (IQueryOneFlowBuilder<TestModel, TestResponse>)flow;
         Assert.NotNull(builder.AfterExecutionFunc);
     }
 
@@ -155,15 +137,14 @@ public sealed class QueryFlowTests
     public async Task QueryOne_WithAfterExecution_ShouldReceiveResponse()
     {
         TestResponse capturedResponse = null;
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.Id == "1")
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.Id == "1")
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithErrorIfNull(new Error("Not found"))
             .WithAfterExecution(r => { capturedResponse = r; });
 
-        var builder = (IQueryOneFlowBuilder<TestModel, TestResponse>)flow;
         var response = new TestResponse { DisplayName = "Test" };
         await builder.AfterExecutionFunc(response);
         Assert.Same(response, capturedResponse);
@@ -172,91 +153,78 @@ public sealed class QueryFlowTests
     [Fact]
     public void QueryOne_WithToModelPath_BeforeAndAfterHooks()
     {
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.Id == "1")
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.Id == "1")
             .WithSpecialAction(q => q)
             .WithMap(m => new TestResponse { DisplayName = m.Name })
             .WithBeforeExecution(() => { })
             .WithErrorIfNull(new Error("Not found"))
             .WithAfterExecution(_ => { });
 
-        var builder = (IQueryOneFlowBuilder<TestModel, TestResponse>)flow;
         Assert.NotNull(builder.BeforeExecutionFunc);
         Assert.NotNull(builder.AfterExecutionFunc);
-        Assert.Equal(QuerySpecialActionType.ToModel, builder.QuerySpecialActionType);
     }
 
     [Fact]
     public void QueryOne_NoHooks_ShouldBeNull()
     {
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.Id == "1")
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.Id == "1")
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithErrorIfNull(new Error("Not found"));
 
-        var builder = (IQueryOneFlowBuilder<TestModel, TestResponse>)flow;
         Assert.Null(builder.BeforeExecutionFunc);
         Assert.Null(builder.AfterExecutionFunc);
     }
 
     #endregion
 
-    #region QueryMany - Chainable Filters
+    #region QueryMany - Flow Building
 
     [Fact]
-    public void QueryMany_SingleFilter_ShouldSetFilter()
+    public void QueryMany_SingleFilter_ShouldBuild()
     {
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id));
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
-        Assert.NotNull(builder.Filter);
+        Assert.NotNull(builder);
     }
 
     [Fact]
-    public void QueryMany_ChainedFilters_ShouldComposeWithAnd()
+    public void QueryMany_ChainedFilters_ShouldBuild()
     {
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithFilter(x => x.Age >= 18)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id));
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
-        var compiledFilter = builder.Filter.Compile();
-
-        Assert.True(compiledFilter(new TestModel { IsActive = true, Age = 18 }));
-        Assert.False(compiledFilter(new TestModel { IsActive = true, Age = 17 }));
-        Assert.False(compiledFilter(new TestModel { IsActive = false, Age = 18 }));
+        Assert.NotNull(builder);
     }
 
     [Fact]
-    public void QueryMany_ThreeChainedFilters_ShouldComposeAll()
+    public void QueryMany_ThreeChainedFilters_ShouldBuild()
     {
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithFilter(x => x.Age >= 18)
             .WithFilter(x => x.Name.StartsWith("J"))
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id));
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
-        var compiledFilter = builder.Filter.Compile();
-
-        Assert.True(compiledFilter(new TestModel { IsActive = true, Age = 25, Name = "John" }));
-        Assert.False(compiledFilter(new TestModel { IsActive = true, Age = 25, Name = "Bob" }));
+        Assert.NotNull(builder);
     }
 
     #endregion
@@ -266,15 +234,14 @@ public sealed class QueryFlowTests
     [Fact]
     public void QueryMany_WithBeforeExecution_ShouldSet()
     {
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithBeforeExecution(() => { })
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id));
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
         Assert.NotNull(builder.BeforeExecutionFunc);
     }
 
@@ -282,15 +249,14 @@ public sealed class QueryFlowTests
     public async Task QueryMany_WithBeforeExecution_ShouldInvoke()
     {
         var called = false;
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithBeforeExecution(() => { called = true; })
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id));
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
         await builder.BeforeExecutionFunc();
         Assert.True(called);
     }
@@ -298,15 +264,14 @@ public sealed class QueryFlowTests
     [Fact]
     public void QueryMany_WithAfterExecution_ShouldSet()
     {
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id))
             .WithAfterExecution(() => { });
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
         Assert.NotNull(builder.AfterExecutionFunc);
     }
 
@@ -314,15 +279,14 @@ public sealed class QueryFlowTests
     public async Task QueryMany_WithAfterExecution_ShouldInvoke()
     {
         var called = false;
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id))
             .WithAfterExecution(() => { called = true; });
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
         await builder.AfterExecutionFunc();
         Assert.True(called);
     }
@@ -330,14 +294,13 @@ public sealed class QueryFlowTests
     [Fact]
     public void QueryMany_NoHooks_ShouldBeNull()
     {
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id));
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
         Assert.Null(builder.BeforeExecutionFunc);
         Assert.Null(builder.AfterExecutionFunc);
     }
@@ -346,73 +309,60 @@ public sealed class QueryFlowTests
     public async Task QueryMany_FullChain_WithHooks()
     {
         var callOrder = new List<string>();
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithFilter(x => x.Age > 18)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithBeforeExecution(() => callOrder.Add("before"))
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id))
             .WithAfterExecution(() => callOrder.Add("after"));
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
         await builder.BeforeExecutionFunc();
         await builder.AfterExecutionFunc();
 
         Assert.Equal(["before", "after"], callOrder);
-        Assert.NotNull(builder.Filter);
-        Assert.Equal(QuerySpecialActionType.ToTarget, builder.QuerySpecialActionType);
     }
 
     #endregion
 
-    #region Counting - Chainable Filters
+    #region Counting - Flow Building
 
     [Fact]
-    public void Counting_SingleFilter_ShouldSetFilter()
+    public void Counting_SingleFilter_ShouldBuild()
     {
-        var flow = new CountingFlow<TestModel>();
+        var start = new CountingFlowStart();
 
-        var builder = ((ICountingFilter<TestModel>)flow)
-            .WithFilter(x => x.IsActive);
+        var builder = (ICountingFlowBuilder)start
+            .WithFilter<TestModel>(x => x.IsActive);
 
-        var result = (ICountingFlowBuilder<TestModel>)builder;
-        Assert.NotNull(result.Filter);
+        Assert.NotNull(builder);
     }
 
     [Fact]
-    public void Counting_ChainedFilters_ShouldComposeWithAnd()
+    public void Counting_ChainedFilters_ShouldBuild()
     {
-        var flow = new CountingFlow<TestModel>();
+        var start = new CountingFlowStart();
 
-        var builder = ((ICountingFilter<TestModel>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (ICountingFlowBuilder)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithFilter(x => x.Age > 21);
 
-        var result = (ICountingFlowBuilder<TestModel>)builder;
-        var compiledFilter = result.Filter.Compile();
-
-        Assert.True(compiledFilter(new TestModel { IsActive = true, Age = 25 }));
-        Assert.False(compiledFilter(new TestModel { IsActive = false, Age = 25 }));
-        Assert.False(compiledFilter(new TestModel { IsActive = true, Age = 20 }));
+        Assert.NotNull(builder);
     }
 
     [Fact]
-    public void Counting_ThreeChainedFilters_ShouldComposeAll()
+    public void Counting_ThreeChainedFilters_ShouldBuild()
     {
-        var flow = new CountingFlow<TestModel>();
+        var start = new CountingFlowStart();
 
-        var builder = ((ICountingFilter<TestModel>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (ICountingFlowBuilder)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithFilter(x => x.Age > 18)
             .WithFilter(x => x.Id != null);
 
-        var result = (ICountingFlowBuilder<TestModel>)builder;
-        var compiledFilter = result.Filter.Compile();
-
-        Assert.True(compiledFilter(new TestModel { IsActive = true, Age = 25, Id = "1" }));
-        Assert.False(compiledFilter(new TestModel { IsActive = true, Age = 25, Id = null }));
+        Assert.NotNull(builder);
     }
 
     #endregion
@@ -422,16 +372,14 @@ public sealed class QueryFlowTests
     [Fact]
     public void BackwardCompat_QueryOne_SingleFilterDirectToSpecialAction()
     {
-        var flow = new QueryOneFlow<TestModel, TestResponse>();
+        var start = new QueryOneFlowStart<TestResponse>();
 
-        ((IQueryOneFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.Id == "1")
+        var builder = (IQueryOneFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.Id == "1")
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithErrorIfNull(new Error("Not found"));
 
-        var builder = (IQueryOneFlowBuilder<TestModel, TestResponse>)flow;
-        Assert.NotNull(builder.Filter);
-        Assert.Equal(QuerySpecialActionType.ToTarget, builder.QuerySpecialActionType);
+        Assert.NotNull(builder.NullError);
         Assert.Null(builder.BeforeExecutionFunc);
         Assert.Null(builder.AfterExecutionFunc);
     }
@@ -439,15 +387,13 @@ public sealed class QueryFlowTests
     [Fact]
     public void BackwardCompat_QueryMany_SingleFilterDirectToSpecialAction()
     {
-        var flow = new QueryManyFlow<TestModel, TestResponse>();
+        var start = new QueryListFlowStart<TestResponse>();
 
-        ((IQueryListFilter<TestModel, TestResponse>)flow)
-            .WithFilter(x => x.IsActive)
+        var builder = (IQueryListFlowBuilder<TestResponse>)start
+            .WithFilter<TestModel>(x => x.IsActive)
             .WithSpecialAction(q => q.Select(m => new TestResponse { DisplayName = m.Name }))
             .WithDefaultSortFields(ExpressionOrder<TestModel>.Of(x => x.Id));
 
-        var builder = (IQueryListFlowBuilder<TestModel, TestResponse>)flow;
-        Assert.NotNull(builder.Filter);
         Assert.Null(builder.BeforeExecutionFunc);
         Assert.Null(builder.AfterExecutionFunc);
     }
@@ -455,12 +401,12 @@ public sealed class QueryFlowTests
     [Fact]
     public void BackwardCompat_Counting_SingleFilterDirectToBuilder()
     {
-        var flow = new CountingFlow<TestModel>();
+        var start = new CountingFlowStart();
 
-        var builder = (ICountingFlowBuilder<TestModel>)((ICountingFilter<TestModel>)flow)
-            .WithFilter(x => x.IsActive);
+        var builder = (ICountingFlowBuilder)start
+            .WithFilter<TestModel>(x => x.IsActive);
 
-        Assert.NotNull(builder.Filter);
+        Assert.NotNull(builder);
     }
 
     #endregion
@@ -493,16 +439,16 @@ public sealed class QueryFlowTests
     [Fact]
     public void IQueryOneAfterBuild_ShouldInherit_IQueryOneFlowBuilder()
     {
-        var interfaces = typeof(IQueryOneAfterBuild<,>).GetInterfaces();
+        var interfaces = typeof(IQueryOneAfterBuild<>).GetInterfaces();
         Assert.Contains(interfaces, i =>
-            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryOneFlowBuilder<,>));
+            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryOneFlowBuilder<>));
     }
 
     [Fact]
     public void IQueryOneAfterBuild_ShouldDefine_WithAfterExecution()
     {
-        var methods = typeof(IQueryOneAfterBuild<,>).GetMethods()
-            .Where(m => m.DeclaringType == typeof(IQueryOneAfterBuild<,>))
+        var methods = typeof(IQueryOneAfterBuild<>).GetMethods()
+            .Where(m => m.DeclaringType == typeof(IQueryOneAfterBuild<>))
             .Select(m => m.Name).ToList();
         Assert.Contains("WithAfterExecution", methods);
     }
@@ -510,7 +456,7 @@ public sealed class QueryFlowTests
     [Fact]
     public void IQueryOneFlowBuilder_ShouldDefine_HookProperties()
     {
-        var type = typeof(IQueryOneFlowBuilder<,>);
+        var type = typeof(IQueryOneFlowBuilder<>);
         Assert.NotNull(type.GetProperty("BeforeExecutionFunc"));
         Assert.NotNull(type.GetProperty("AfterExecutionFunc"));
     }
@@ -526,23 +472,22 @@ public sealed class QueryFlowTests
     [Fact]
     public void IQueryListAfterBuild_ShouldInherit_IQueryListFlowBuilder()
     {
-        var interfaces = typeof(IQueryListAfterBuild<,>).GetInterfaces();
+        var interfaces = typeof(IQueryListAfterBuild<>).GetInterfaces();
         Assert.Contains(interfaces, i =>
-            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryListFlowBuilder<,>));
+            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryListFlowBuilder<>));
     }
 
     [Fact]
     public void ICountingAfterFilter_ShouldInherit_ICountingFlowBuilder()
     {
         var interfaces = typeof(ICountingAfterFilter<>).GetInterfaces();
-        Assert.Contains(interfaces, i =>
-            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICountingFlowBuilder<>));
+        Assert.Contains(interfaces, i => i == typeof(ICountingFlowBuilder));
     }
 
     [Fact]
     public void IQueryListFlowBuilder_ShouldDefine_HookProperties()
     {
-        var type = typeof(IQueryListFlowBuilder<,>);
+        var type = typeof(IQueryListFlowBuilder<>);
         Assert.NotNull(type.GetProperty("BeforeExecutionFunc"));
         Assert.NotNull(type.GetProperty("AfterExecutionFunc"));
     }

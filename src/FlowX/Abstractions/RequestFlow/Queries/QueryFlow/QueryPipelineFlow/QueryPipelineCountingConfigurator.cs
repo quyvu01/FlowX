@@ -119,7 +119,7 @@ internal sealed class QueryPipelineCountingConfigurator<TModel, TPrev> :
 
     IQueryPipelineResultTerminal<TResult> IQueryPipelineNextable<long>.WithResult<TResult>(
         Func<long, TResult> resultFunc)
-        => ((IQueryPipelineNextable<long>)this).WithResult<TResult>(
+        => ((IQueryPipelineNextable<long>)this).WithResult(
             count => Task.FromResult(resultFunc(count)));
 
     IQueryPipelineResultTerminal<TResult> IQueryPipelineNextable<long>.WithResult<TResult>(

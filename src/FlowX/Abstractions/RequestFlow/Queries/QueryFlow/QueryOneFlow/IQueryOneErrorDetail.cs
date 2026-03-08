@@ -5,7 +5,7 @@ namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryOneFlow;
 
 public interface IQueryOneErrorDetail<TModel, TResponse> where TModel : class where TResponse : class
 {
-    IQueryOneAfterBuild<TModel, TResponse> WithErrorIfNull([NotNull] Error error);
+    IQueryOneAfterBuild<TResponse> WithErrorIfNull([NotNull] Error error);
     IQueryOneErrorDetail<TModel, TResponse> WithBeforeExecution([NotNull] Action action);
     IQueryOneErrorDetail<TModel, TResponse> WithBeforeExecution([NotNull] Func<Task> actionAsync);
 }

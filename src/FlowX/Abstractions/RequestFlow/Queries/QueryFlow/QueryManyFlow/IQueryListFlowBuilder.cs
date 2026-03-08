@@ -1,15 +1,16 @@
-﻿using System.Linq.Expressions;
-
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryManyFlow;
 
-public interface IQueryListFlowBuilder<TModel, out TResponse> where TModel : class
+public interface IQueryListFlowBuilder<TResponse>
 {
-    QuerySpecialActionType QuerySpecialActionType { get; }
-    Expression<Func<TModel, bool>> Filter { get; }
-    Func<IQueryable<TModel>, IQueryable<TModel>> SpecialActionToModel { get; }
-    Func<IQueryable<TModel>, IQueryable<TResponse>> SpecialActionToResponse { get; }
-    Func<TModel, TResponse> MapFunc { get; }
-    ExpressionOrder<TModel> ExpressionOrder { get; }
     Func<Task> BeforeExecutionFunc { get; }
     Func<Task> AfterExecutionFunc { get; }
+
+    Task<(List<TResponse> Items, long TotalCount)> ExecutePaginationAsync(
+        IQueryFlowServiceProvider provider,
+        string sortedFields, int? skip, int? take,
+        CancellationToken ct);
+
+    Task<List<TResponse>> ExecuteCollectionAsync(
+        IQueryFlowServiceProvider provider,
+        CancellationToken ct);
 }

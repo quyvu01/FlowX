@@ -8,12 +8,12 @@ using Service2.Models;
 
 namespace Service2.Handlers;
 
-public sealed class GetProvinceHandler : EfQueryOneHandler<Province, GetProvinceQuery, ProvinceResponse>
+public sealed class GetProvinceHandler : EfQueryOneHandler<GetProvinceQuery, ProvinceResponse>
 {
-    protected override IQueryOneFlowBuilder<Province, ProvinceResponse> BuildQueryFlow(
-        IQueryOneFilter<Province, ProvinceResponse> fromFlow, IRequestContext<GetProvinceQuery> queryContext)
+    protected override IQueryOneFlowBuilder<ProvinceResponse> BuildQueryFlow(
+        IQueryOneFilter<ProvinceResponse> fromFlow, IRequestContext<GetProvinceQuery> queryContext)
         => fromFlow
-            .WithFilter(a => a.Id == queryContext.Request.Id)
+            .WithFilter<Province>(a => a.Id == queryContext.Request.Id)
             .WithSpecialAction(a => a.Select(u => new ProvinceResponse { Id = u.Id, Name = u.Name }))
             .WithErrorIfNull(new Error { Code = "NotFound", Messages = ["User was not found!"] });
 }

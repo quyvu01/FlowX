@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryPipelineFlow;
 
-public interface IQueryPipelineNextable<TPrev>
+public interface IQueryPipelineNextable<out TPrev>
 {
     // Filter-based transitions
     IQueryPipelineOneStep<TNext> ThenQueryOne<TNext>(

@@ -1,8 +1,9 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryOneFlow;
 
-public interface IQueryOneFilter<TModel, TResponse> where TModel : class where TResponse : class
+public interface IQueryOneFilter<TResponse> where TResponse : class
 {
-    IQueryOneAfterFilter<TModel, TResponse> WithFilter(Expression<Func<TModel, bool>> filter);
+    IQueryOneAfterFilter<TModel, TResponse> WithFilter<TModel>(
+        Expression<Func<TModel, bool>> filter) where TModel : class;
 }

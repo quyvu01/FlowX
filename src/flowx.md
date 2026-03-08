@@ -1,5 +1,12 @@
 # FlowX Pipeline Architecture
 
+## Namespaces
+
+- Command Pipeline: `FlowX.Abstractions.RequestFlow.Commands.PipelineFlow`
+- Query Pipeline: `FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryPipelineFlow`
+
+---
+
 ## Command Pipeline
 
 ### Entry Points (`IStartCommandPipeline`)
@@ -30,14 +37,27 @@ All One steps inherit `IPipelineNextable<T>`.
 | Interface | Methods |
 |-----------|---------|
 | `IPipelineManyCreateStep<T>` | `WithCondition(Func<List<T>, OneOf<None, Error>>)`, `WithModify(Action<T>)` |
-| `IPipelineManyUpdateStep<T>` | `WithCondition(...)`, `WithModify(Action<T>)` |
+| `IPipelineManyUpdateStep<T>` | `WithCondition(...)`, `WithModify(Action<List<T>>)` |
 | `IPipelineManyRemoveStep<T>` | `WithCondition(...)` |
 
 All Many steps inherit `IPipelineNextable<List<T>>`.
 
-### Chaining (`IPipelineNextable<TPrev>`)
+### Interface Hierarchy
 
-After configuring a step (WithCondition, WithModify, etc.), you can:
+```
+IPipelineContinuation<out TPrev>           ← transitions only (Then*)
+  ↑
+IPipelineNextable<out TPrev>               ← transitions + Done + terminals
+  ↑
+IPipelineOneCreateStep<T> / IPipelineOneUpdateStep<T> / ...
+
+IPipelineContinuationOrTerminal<out TPrev> ← IPipelineContinuation + IPipelineFlowBuilder
+  (returned by Done().WithErrorIfSaveChange)
+```
+
+### Chaining (`IPipelineContinuation<TPrev>`)
+
+After configuring a step (WithCondition, WithModify, etc.), transitions are available:
 
 ```
 .ThenCreateOne<T>(Func<TPrev, T>)
@@ -54,15 +74,14 @@ After configuring a step (WithCondition, WithModify, etc.), you can:
 
 ```
 .Done()                              → IPipelineAfterDone<TPrev>
-  .WithErrorIfSaveChange(error)      → IPipelineContinuation<TPrev>
+  .WithErrorIfSaveChange(error)      → IPipelineContinuationOrTerminal<TPrev>
     .ThenCreateOne(...)              → new step chain
     .ThenCreateMany(...)
-    .ThenUpdateOne(...)
     ...
-    .WithResultIfSucceed(func)       → terminal with result
+  .WithResultIfSucceed(func)         → IPipelineResultTerminal<R>
 ```
 
-`IPipelineContinuation<TPrev>` inherits `IPipelineTerminal`, so it's also a valid terminal (for void handlers).
+`IPipelineContinuationOrTerminal<TPrev>` inherits both `IPipelineContinuation<TPrev>` and `IPipelineFlowBuilder`, so it can either continue chaining or be used as the final builder (void handler).
 
 ### Terminals
 
@@ -76,8 +95,8 @@ Without Done:
 With hooks (on terminal interfaces):
 
 ```
-.WithBeforeExecution(action)     → IPipelineTerminal
-.WithAfterExecution(action)      → IPipelineFlowBuilder
+.WithBeforeExecution(action)     → IPipelineTerminal / IPipelineResultTerminal
+.WithAfterExecution(action)      → IPipelineFlowBuilder / IPipelineResultFlowBuilder
 ```
 
 ### Complete Flow Examples
@@ -94,13 +113,6 @@ flow.CreateOne(new Order { ... })
     .WithCondition(o => o.CustomerName != null ? None.Value : new Error("Name required"))
     .WithModify(o => o.CreatedAt = DateTime.UtcNow)
     .WithResultIfSucceed<Guid>(o => o.Id);
-```
-
-**Multi-step without Done (single transaction):**
-```csharp
-flow.CreateOne(new Order { ... })
-    .ThenCreateMany<OrderItem>(order => items.Select(i => new OrderItem { OrderId = order.Id, ... }))
-    .WithErrorIfSaveChange(new Error("Failed"));
 ```
 
 **Multi-step with Done (separate transactions):**
@@ -126,11 +138,11 @@ flow.CreateMany(products)
 
 ```csharp
 Task<TModel> CreateOneAsync<TModel>(TModel model, CancellationToken ct);
-Task<List<TModel>> CreateManyAsync<TModel>(IEnumerable<TModel> models, CancellationToken ct);
+Task<List<TModel>> CreateManyAsync<TModel>(List<TModel> models, CancellationToken ct);
 Task<TModel> GetFirstByConditionAsync<TModel>(Expression<Func<TModel, bool>> filter, CancellationToken ct);
 Task<List<TModel>> GetManyByConditionAsync<TModel>(Expression<Func<TModel, bool>> filter, CancellationToken ct);
 Task RemoveOneAsync<TModel>(TModel model, CancellationToken ct);
-Task RemoveManyAsync<TModel>(IEnumerable<TModel> models, CancellationToken ct);
+Task RemoveManyAsync<TModel>(List<TModel> models, CancellationToken ct);
 Task SaveChangesAsync(CancellationToken ct);
 ```
 
@@ -197,7 +209,7 @@ Task<long> GetCountAsync<TModel>(filter, specialAction, ct);
 
 ## Architecture Notes
 
-- **Step descriptors** (internal): `CreateOnePipelineStep<TModel, TPrev>`, `CreateManyPipelineStep<TModel, TPrev>`, etc. — store config (filter, condition, modify) and execute via provider
+- **Step descriptors** (internal): `CreateOnePipelineStep<TModel, TPrev>`, `CreateManyPipelineStep<TModel, TPrev>`, etc. — store config and execute via provider
 - **Configurators** (internal): `PipelineOneStepConfigurator<TModel, TPrev>`, `PipelineManyStepConfigurator<TModel, TPrev>` — implement step interfaces via explicit interface implementations
 - **EF Core providers**: `EfPipelineServiceProvider` (commands), `EfQueryPipelineServiceProvider` (queries) — implement provider interfaces using `IUnitOfWork` / `IRepository<T>`
-- **`ExpressionOrder<T>`**: Fluent sort builder — `ExpressionOrder<T>.Of(x => x.Field)`, `.ThenDescBy(x => x.Other)`, `Of(x => x.Field, isAsc: false)`
+- **`ExpressionOrder<T>`**: Fluent sort builder — `ExpressionOrder<T>.Of(x => x.Field)`, `.ThenDescBy(x => x.Other)`

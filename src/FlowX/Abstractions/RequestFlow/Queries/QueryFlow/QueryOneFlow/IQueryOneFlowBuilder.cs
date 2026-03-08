@@ -1,16 +1,14 @@
-﻿using System.Linq.Expressions;
 using FlowX.Errors;
 
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.QueryOneFlow;
 
-public interface IQueryOneFlowBuilder<TModel, TResponse> where TModel : class where TResponse : class
+public interface IQueryOneFlowBuilder<TResponse> where TResponse : class
 {
-    QuerySpecialActionType QuerySpecialActionType { get; }
-    Expression<Func<TModel, bool>> Filter { get; }
-    Func<IQueryable<TModel>, IQueryable<TModel>> SpecialAction { get; }
-    Func<IQueryable<TModel>, IQueryable<TResponse>> SpecialActionToResponse { get; }
-    Func<TModel, TResponse> MapFunc { get; }
-    Error Error { get; }
+    Error NullError { get; }
     Func<Task> BeforeExecutionFunc { get; }
     Func<TResponse, Task> AfterExecutionFunc { get; }
+
+    Task<TResponse> ExecuteOneAsync(
+        IQueryFlowServiceProvider provider,
+        CancellationToken ct);
 }

@@ -1,8 +1,6 @@
-﻿using System.Linq.Expressions;
-
 namespace FlowX.Abstractions.RequestFlow.Queries.QueryFlow.CountingFlow;
 
-public interface ICountingFlowBuilder<TModel> where TModel : class
+public interface ICountingFlowBuilder
 {
-    Expression<Func<TModel, bool>> Filter { get; }
+    Task<long> ExecuteCountAsync(IQueryFlowServiceProvider provider, CancellationToken ct);
 }
